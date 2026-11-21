@@ -41,6 +41,7 @@ const PARTS: readonly Part[] = [
     check: [
       ["ARL escrow on BaseScan", scan("0x9aE99bF9a59aF47E81346B7c0b93Cd2B610455fC")],
       ["USDC escrow on BaseScan", scan("0xE3eA0EAEc3Cf9DA2d0856A0f784A4B1671AeFD04")],
+      ["Step through a job in your browser", "https://arlcoin.io/demo/"],
     ],
   },
   {
@@ -61,9 +62,24 @@ const PARTS: readonly Part[] = [
     check: [
       ["Validators in ARLscan", "https://arlcoin.io/app/scan/"],
       ["The same data as JSON", "https://arlcoin.io/api/v1/validators"],
+      ["Live network status", "https://arlcoin.io/status/"],
       [
         "Run a validator yourself",
         "https://github.com/armanalabsai/arlcoin.io/blob/main/docs/run-a-validator.md",
+      ],
+    ],
+  },
+  {
+    name: "ARL agent",
+    state: "Live, taking jobs",
+    what: "A provider agent registered in the ERC-8004 identity registry on Base that anyone can hire for a verified test run.",
+    how: "A client opens a job that names it. The agent checks the spec against the hash on chain, runs it in a pinned container and submits the result. Validators re-run it before the escrow pays, and the outcome is written to the agent's record.",
+    check: [
+      ["Hire the agent", "https://arlcoin.io/hire/"],
+      ["Its passport", "https://arlcoin.io/agent/?id=1221687"],
+      [
+        "Registration on BaseScan",
+        "https://basescan.org/tx/0x3ae912c19b7f57485da21dc6e94236781be0e7e998e8dfd12822c4600a2f4c36",
       ],
     ],
   },

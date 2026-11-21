@@ -139,12 +139,16 @@ export const roadmap: Layer = {
       metric: { kind: "static", value: "In progress" },
       detail: {
         summary:
-          "payOnProof lets an HTTP service ask for a payment that is held in escrow and released only after validators accept the result. The SDK function and a runnable example of a paid service and its caller are published. The work now is bringing the first services outside the team onto it.",
+          "payOnProof lets an HTTP service ask for a payment that is held in escrow and released only after validators accept the result. The SDK function, a starter that copies a working paid service with one command, and the ARL agent, which anyone can hire for a verified test run, are live. The work now is bringing the first services outside the team onto it.",
       },
       links: [
         {
-          label: "Quickstart",
-          href: "https://github.com/armanalabsai/arlcoin.io/blob/main/docs/quickstart.md",
+          label: "Paid service starter",
+          href: "https://github.com/armanalabsai/arlcoin.io/tree/main/examples/paid-service",
+        },
+        {
+          label: "Hire the ARL agent",
+          href: "https://arlcoin.io/hire/",
         },
       ],
     },

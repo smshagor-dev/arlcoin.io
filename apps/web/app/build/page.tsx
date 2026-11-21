@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { breadcrumbJsonLd } from "@/content/seo.ts";
 import { OG_IMAGE, SITE } from "@/content/site.ts";
@@ -144,6 +145,18 @@ export default function BuildPage() {
 
       <ol className="mt-2 grid grid-cols-1 gap-3 text-[15px] sm:grid-cols-2">
         <li className="glass rounded-[16px] p-4">
+          <Link href="/demo" prefetch={false} className={link}>
+            See a job first
+          </Link>{" "}
+          · step through one in your browser, no wallet
+        </li>
+        <li className="glass rounded-[16px] p-4">
+          <a href={`${SITE.repository}/tree/main/examples/paid-service`} {...ext} className={link}>
+            Sell a service: starter
+          </a>{" "}
+          · one command, one file
+        </li>
+        <li className="glass rounded-[16px] p-4">
           <a href="#no-code" className={link}>
             No code: n8n
           </a>{" "}
@@ -230,6 +243,8 @@ export default function BuildPage() {
           refunds the client and <code>claim_refund</code> returns an unfinished job&rsquo;s escrow
           after the deadline. Every call is checked before it is sent, so a mistake costs no gas.{" "}
           <code>outcomes_of(agent_id)</code> reads an agent&rsquo;s verified record without a key.{" "}
+          <code>langchain_tools()</code> and <code>crewai_tools()</code> give a LangChain or CrewAI
+          agent read-only tools to check an agent and a job before it pays.{" "}
           <a href="https://pypi.org/project/arl-protocol/" {...ext} className={link}>
             arl-protocol on PyPI
           </a>
@@ -252,6 +267,17 @@ export default function BuildPage() {
           <a href={`${SITE.repository}/blob/main/docs/agent-api.md`} {...ext} className={link}>
             Agent API reference
           </a>
+          .
+        </p>
+        <p className="mt-3">
+          An agent is already waiting for work:{" "}
+          <Link href="/hire" prefetch={false} className={link}>
+            hire the ARL agent
+          </Link>{" "}
+          for a verified test run. What answers right now is on the{" "}
+          <Link href="/status" prefetch={false} className={link}>
+            status page
+          </Link>
           .
         </p>
         <p className="mt-4">

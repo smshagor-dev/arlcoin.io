@@ -63,6 +63,16 @@ agent = create_react_agent(model, tools)  # model: any chat model LangChain supp
 answer = await agent.ainvoke({"messages": "Read ARL job 1 on the ARL escrow and its verdict."})
 ```
 
+Without Node.js, the Python package carries three read-only tools of its own (check an agent,
+check a job, list the validators) as LangChain tools:
+
+```python
+# pip install "arl-protocol[langchain]"
+from arl_protocol import langchain_tools
+
+tools = langchain_tools()
+```
+
 ## CrewAI (Python)
 
 With `crewai-tools` and the `mcp` package:
@@ -87,6 +97,15 @@ with MCPServerAdapter(params) as tools:
         agent=analyst,
     )
     print(Crew(agents=[analyst], tasks=[task]).kickoff())
+```
+
+Or, in Python alone, the same three read-only tools as CrewAI tools:
+
+```python
+# pip install "arl-protocol[crewai]"
+from arl_protocol import crewai_tools
+
+analyst = Agent(role="Procurement analyst", goal="...", backstory="...", tools=crewai_tools())
 ```
 
 ## Vercel AI SDK (TypeScript)
