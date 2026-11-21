@@ -18,6 +18,9 @@ const VALIDATORS = {
   ],
 };
 const AGENT = { registered: true, completed: 2, rejected: 0 };
+/** The head block's timestamp in the fake chain, in seconds. */
+const HEAD_TIME = 1_795_299_492;
+const h = (n: number) => `0x${n.toString(16)}`;
 
 /** A fetch that answers like Base and the Agent API, or fails where `down` says so. */
 function fakeFetch(down: { rpc?: boolean; api?: boolean; noCodeAt?: number } = {}): typeof fetch {
@@ -29,13 +32,21 @@ function fakeFetch(down: { rpc?: boolean; api?: boolean; noCodeAt?: number } = {
     const host = URL.canParse(url) ? new URL(url).host : "";
     if (host === "mainnet.base.org") {
       if (down.rpc) throw new Error("unreachable");
-      const batch = JSON.parse(String(init?.body)) as { id: number; method: string }[];
+      const sent = JSON.parse(String(init?.body)) as
+        { id: number; method: string } | { id: number; method: string }[];
+      // One block asked for by number: the block the history reaches, nine minutes before the head.
+      if (!Array.isArray(sent)) {
+        return reply({
+          id: sent.id,
+          result: { number: "0x39b6a91", timestamp: h(HEAD_TIME - 540) },
+        });
+      }
       return reply(
-        batch.map((call) => ({
+        sent.map((call) => ({
           id: call.id,
           result:
-            call.method === "eth_blockNumber"
-              ? "0x39b6f8d" // 60518285
+            call.method === "eth_getBlockByNumber"
+              ? { number: "0x39b6f8d", timestamp: h(HEAD_TIME) } // block 60518285
               : call.id === down.noCodeAt
                 ? "0x"
                 : "0x6080",
@@ -52,8 +63,8 @@ function fakeFetch(down: { rpc?: boolean; api?: boolean; noCodeAt?: number } = {
 }
 
 describe("network status", () => {
-  it("turns a block distance into minutes and never goes below zero", () => {
-    assert.equal(minutesBehind(60518285, 60517009), 43);
+  it("measures the lag from the blocks' timestamps and never goes below zero", () => {
+    assert.equal(minutesBehind(HEAD_TIME, HEAD_TIME - 540), 9);
     assert.equal(minutesBehind(100, 130), 0);
   });
 
@@ -71,7 +82,9 @@ describe("network status", () => {
       STATUS_CONTRACTS.map(() => ({ ok: true })),
     );
     assert.equal(s.api.ok, true);
-    assert.deepEqual(s.history, { block: 60517009, minutesBehind: 43 });
+    // 1,276 blocks apart, and nine minutes by the blocks' own timestamps.
+    assert.deepEqual(s.history, { block: 60517009, minutesBehind: 9 });
+    assert.equal(s.chain.ok && s.chain.time, HEAD_TIME);
     // An entry that is not a validator record is left out, not shown half empty.
     assert.equal(s.validators?.length, 1);
     assert.deepEqual(s.agent, { registered: true, completed: 2, rejected: 0 });
@@ -86,6 +99,8 @@ describe("network status", () => {
   it("takes the head from the API and leaves the contracts unchecked when Base is unreachable", async () => {
     const s = await readStatus(fakeFetch({ rpc: true }));
     assert.equal(s.chain.ok && s.chain.block, 60518240);
+    // Without the blocks' timestamps the lag is left out, not estimated.
+    assert.deepEqual(s.history, { block: 60517009, minutesBehind: null });
     assert.deepEqual(
       s.contracts,
       STATUS_CONTRACTS.map(() => ({ ok: null })),

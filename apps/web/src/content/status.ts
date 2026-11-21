@@ -17,9 +17,6 @@ export const STATUS_CONTRACTS = [
   { name: "Compute payment", address: "0x1bFE932896fdd32175836a7364dcaf53d49EE464" },
 ] as const;
 
-/** Seconds per Base block, to turn a block distance into minutes. */
-const BLOCK_SECONDS = 2;
-
 export interface ValidatorLine {
   token: string;
   validator: string;
@@ -30,7 +27,8 @@ export interface ValidatorLine {
 
 export interface NetworkState {
   checkedAt: number;
-  chain: { ok: true; block: number; ms: number } | { ok: false };
+  /** `time` is the head block's own timestamp, in seconds; null when only its number is known. */
+  chain: { ok: true; block: number; time: number | null; ms: number } | { ok: false };
   /** `null` when the chain could not be asked, so nothing is known about the contract. */
   contracts: { ok: boolean | null }[];
   api: { ok: true; ms: number } | { ok: false };
@@ -47,10 +45,16 @@ interface RpcAnswer {
   result?: unknown;
 }
 
-/** Minutes the history is behind the chain head, never negative. */
-export function minutesBehind(head: number, block: number): number {
-  return Math.max(0, Math.round(((head - block) * BLOCK_SECONDS) / 60));
+/**
+ * Minutes between two blocks, from their own timestamps (seconds), never negative. The distance in
+ * blocks is not used: how long a block takes is the chain's to decide and has changed before.
+ */
+export function minutesBehind(headTime: number, blockTime: number): number {
+  return Math.max(0, Math.round((headTime - blockTime) / 60));
 }
+
+const quantity = (v: unknown): number | null =>
+  typeof v === "string" && /^0x[0-9a-fA-F]+$/.test(v) ? Number(BigInt(v)) : null;
 
 /** A contract answers when the chain returns code for its address. */
 export function hasCode(result: unknown): boolean {
@@ -66,7 +70,7 @@ async function json(doFetch: Fetch, url: string, init?: RequestInit): Promise<un
 /** The head block and each contract's code, in one batch, from the first endpoint that answers. */
 async function readChain(doFetch: Fetch): Promise<Pick<NetworkState, "chain" | "contracts">> {
   const batch = [
-    { jsonrpc: "2.0", id: 0, method: "eth_blockNumber", params: [] },
+    { jsonrpc: "2.0", id: 0, method: "eth_getBlockByNumber", params: ["latest", false] },
     ...STATUS_CONTRACTS.map((c, i) => ({
       jsonrpc: "2.0",
       id: i + 1,
@@ -84,10 +88,16 @@ async function readChain(doFetch: Fetch): Promise<Pick<NetworkState, "chain" | "
       });
       if (!Array.isArray(body)) continue;
       const byId = new Map((body as RpcAnswer[]).map((a) => [a.id, a.result]));
-      const head = byId.get(0);
-      if (typeof head !== "string" || !/^0x[0-9a-fA-F]+$/.test(head)) continue;
+      const head = record(byId.get(0));
+      const number = quantity(head?.number);
+      if (number === null) continue;
       return {
-        chain: { ok: true, block: Number(BigInt(head)), ms: Date.now() - started },
+        chain: {
+          ok: true,
+          block: number,
+          time: quantity(head?.timestamp),
+          ms: Date.now() - started,
+        },
         contracts: STATUS_CONTRACTS.map((_, i) => ({ ok: hasCode(byId.get(i + 1)) })),
       };
     } catch {
@@ -110,10 +120,37 @@ async function headFromApi(doFetch: Fetch, base: string): Promise<NetworkState["
         head = Math.max(head, Number(r.block));
       }
     }
-    return head > 0 ? { ok: true, block: head, ms: Date.now() - started } : { ok: false };
+    return head > 0
+      ? { ok: true, block: head, time: null, ms: Date.now() - started }
+      : { ok: false };
   } catch {
     return { ok: false };
   }
+}
+
+/** The timestamp of `block`, in seconds; null when the chain could not be asked. */
+async function blockTime(doFetch: Fetch, block: number): Promise<number | null> {
+  for (const url of STATUS_RPCS) {
+    try {
+      const body = record(
+        await json(doFetch, url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "eth_getBlockByNumber",
+            params: [`0x${block.toString(16)}`, false],
+          }),
+        }),
+      );
+      const time = quantity(record(body?.result)?.timestamp);
+      if (time !== null) return time;
+    } catch {
+      // The next endpoint is asked.
+    }
+  }
+  return null;
 }
 
 const record = (v: unknown): Record<string, unknown> | null =>
@@ -156,6 +193,9 @@ export async function readStatus(doFetch: Fetch = fetch, base = ""): Promise<Net
   const block =
     typeof blockText === "string" && /^[0-9]+$/.test(blockText) ? Number(blockText) : null;
   const agentDoc = record(agentBody);
+  // How far behind the history is, from the two blocks' own timestamps.
+  const headTime = chain.chain.ok ? chain.chain.time : null;
+  const historyTime = block === null || headTime === null ? null : await blockTime(doFetch, block);
 
   return {
     checkedAt: Date.now(),
@@ -166,7 +206,10 @@ export async function readStatus(doFetch: Fetch = fetch, base = ""): Promise<Net
         ? null
         : {
             block,
-            minutesBehind: chain.chain.ok ? minutesBehind(chain.chain.block, block) : null,
+            minutesBehind:
+              headTime === null || historyTime === null
+                ? null
+                : minutesBehind(headTime, historyTime),
           },
     validators,
     agent: agentDoc
