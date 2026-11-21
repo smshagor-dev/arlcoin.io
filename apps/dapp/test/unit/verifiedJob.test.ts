@@ -110,6 +110,16 @@ describe("opening a verified job", () => {
     }
   });
 
+  it("binds the job to the provider's agent only when a number is given", () => {
+    const unbound = checkOpen(input());
+    assert.equal(unbound.ok && unbound.plan.providerAgentId, 0n);
+    const bound = checkOpen(input({ agentId: " 1221637 " }));
+    assert.equal(bound.ok && bound.plan.providerAgentId, 1221637n);
+    assert.match(error({ agentId: "12.5" }) ?? "", /whole number/);
+    assert.match(error({ agentId: "0x12" }) ?? "", /whole number/);
+    assert.match(error({ agentId: "-3" }) ?? "", /whole number/);
+  });
+
   it("parses committees separated by lines, commas or spaces", () => {
     assert.equal(parseCommittee("a, b\nc  d").length, 4);
   });

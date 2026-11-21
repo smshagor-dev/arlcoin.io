@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { erc20Abi, formatUnits, parseEventLogs, parseUnits } from "viem";
 import type { Address, Hex } from "viem";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
@@ -291,7 +292,9 @@ function Verified() {
 
       <RetiredStake />
 
-      <OpenVerifiedJob minBond={me.data?.minBond} minWindow={me.data?.minWindow} />
+      <Suspense>
+        <OpenVerifiedJob minBond={me.data?.minBond} minWindow={me.data?.minWindow} />
+      </Suspense>
 
       <ProviderSteps />
 
@@ -385,9 +388,13 @@ function OpenVerifiedJob({ minBond, minWindow }: { minBond?: bigint; minWindow?:
   const { address } = useAccount();
   const client = usePublicClient();
   const { writeContractAsync } = useWriteContract();
-  const [specUrl, setSpecUrl] = useState("");
-  const [provider, setProvider] = useState("");
-  const [budget, setBudget] = useState("100");
+  // A link can carry the job: ?spec=…&provider=…&agent=…&budget=… fills the form, nothing more.
+  // Every value is checked like a typed one before anything is sent.
+  const linked = useSearchParams();
+  const [specUrl, setSpecUrl] = useState(linked.get("spec") ?? "");
+  const [provider, setProvider] = useState(linked.get("provider") ?? "");
+  const [agentId, setAgentId] = useState(linked.get("agent") ?? "");
+  const [budget, setBudget] = useState(linked.get("budget") ?? "100");
   const [bond, setBond] = useState("");
   const [committee, setCommittee] = useState(OPERATOR_VALIDATORS.join("\n"));
   const [threshold, setThreshold] = useState("2");
@@ -418,6 +425,7 @@ function OpenVerifiedJob({ minBond, minWindow }: { minBond?: bigint; minWindow?:
       arbiter: ARBITER_SAFE,
       specUrl,
       provider,
+      agentId,
       committee,
       threshold: Number(threshold),
       budget: toUnits(budget),
@@ -467,7 +475,7 @@ function OpenVerifiedJob({ minBond, minWindow }: { minBond?: bigint; minWindow?:
             voteWindow: p.voteWindow,
             challengeWindow: p.challengeWindow,
             bond: p.bond,
-            providerAgentId: 0n,
+            providerAgentId: p.providerAgentId,
             specHash,
             committee: p.committee,
           },
@@ -543,6 +551,18 @@ function OpenVerifiedJob({ minBond, minWindow }: { minBond?: bigint; minWindow?:
         onChange={(e) => setProvider(e.target.value)}
         placeholder="0x…"
         data-testid="open-provider"
+      />
+      <label className="text-sm text-muted" htmlFor="open-agent">
+        Provider&apos;s agent number (optional: the outcome is written to that agent&apos;s record)
+      </label>
+      <input
+        id="open-agent"
+        className={field}
+        inputMode="numeric"
+        value={agentId}
+        onChange={(e) => setAgentId(e.target.value)}
+        placeholder="none"
+        data-testid="open-agent"
       />
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm text-muted">

@@ -42,13 +42,15 @@ to the agent's passport ([arlcoin.io/agent](https://arlcoin.io/agent/)).
 
 ```sh
 ARL_PROVIDER_KEY=0x<the provider account's private key> \
-ARL_MIN_BUDGET=10000000000000000000 \
+ARL_MIN_BUDGET=100000000000000000000 \
   node packages/verifier/src/cli.ts provide \
   https://mainnet.base.org 0x0D160C869bd2a7AaEDd29e11fc60fdAEf21c3E28 -20000
 ```
 
 `ARL_MIN_BUDGET` is the provider's price in the escrow token's base units (the example is
-10 ARL) and has no default. Every 15 seconds the agent makes one pass. Progress is kept in
+100 ARL) and has no default. The reference validator accepts a job only when its budget is at
+least the bond it locks, and the ARL evaluator's smallest bond is 100 ARL, so a lower price takes
+jobs that no reference validator checks. Every 15 seconds the agent makes one pass. Progress is kept in
 `.arl-provider-state.json`; a state file that cannot be read stops the agent instead of starting
 over. The key is read from the environment only and is never printed.
 

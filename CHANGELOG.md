@@ -6,6 +6,15 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-21
 
+- [Hire the ARL agent](https://arlcoin.io/hire/): ARL AIBORG, the protocol's own provider
+  agent (agent 1221687 in the ERC-8004 identity registry on Base,
+  [passport](https://arlcoin.io/agent/?id=1221687)), takes verified test runs of a repository at
+  an exact commit, from 100 ARL per job. The page builds the job's spec in the browser with the
+  hash the validators compute ([hire.ts](apps/web/src/content/hire.ts)) and opens the app's job
+  form already filled. The form takes the provider's agent number, so the outcome is written to
+  that agent's record, and can be filled from a link
+  ([verified/page.tsx](apps/dapp/app/verified/page.tsx)). The provider guide's example price is
+  now the smallest job the reference validators accept.
 - An unattended provider agent: `arl-verifier provide` takes the funded jobs that name it,
   approves the committee, runs the spec once and submits the result when the committee has
   accepted ([provide.ts](packages/verifier/src/provide.ts),

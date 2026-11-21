@@ -77,6 +77,8 @@ export interface OpenInput {
   arbiter: Address;
   specUrl: string;
   provider: string;
+  /** The provider's ERC-8004 agent number, as typed. Empty when the job is not bound to an agent. */
+  agentId?: string;
   committee: string;
   threshold: number;
   budget: bigint;
@@ -91,6 +93,8 @@ export interface OpenInput {
 export interface OpenPlan {
   specUrl: string;
   provider: Address;
+  /** 0 when the job is not bound to an agent. */
+  providerAgentId: bigint;
   committee: Address[];
   threshold: number;
   budget: bigint;
@@ -126,6 +130,12 @@ export function checkOpen(i: OpenInput): Checked {
   const arbiter = getAddress(i.arbiter);
   if (provider === client) return { ok: false, error: "The provider must be another wallet" };
   if (provider === arbiter) return { ok: false, error: "The arbiter cannot be the provider" };
+  // The evaluator checks, when the job is configured, that the provider owns this agent.
+  const agent = (i.agentId ?? "").trim();
+  if (agent !== "" && !/^[0-9]{1,77}$/.test(agent)) {
+    return { ok: false, error: "The agent number is a whole number" };
+  }
+  const providerAgentId = agent === "" ? 0n : BigInt(agent);
 
   const raw = parseCommittee(i.committee);
   if (raw.length < 2 || raw.length > 7) {
@@ -191,6 +201,7 @@ export function checkOpen(i: OpenInput): Checked {
     plan: {
       specUrl: url,
       provider,
+      providerAgentId,
       committee,
       threshold: i.threshold,
       budget: i.budget,
