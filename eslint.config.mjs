@@ -40,6 +40,14 @@ export default defineConfig(
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
+    // A program a developer copies and runs: it prints to the terminal and uses Node's globals.
+    files: ["examples/paid-service/**/*.mjs"],
+    languageOptions: {
+      globals: { Buffer: "readonly", Request: "readonly", URL: "readonly", console: "readonly" },
+    },
+    rules: { "no-console": "off" },
+  },
+  {
     files: [
       "**/test/**/*.ts",
       "**/test-fork/**/*.ts",

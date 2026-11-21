@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arl-protocol"
-version = "0.6.0"
+version = "0.7.0"
 description = "Pay AI agents and services through an on-chain escrow on Base Mainnet, in a few calls."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -16,6 +16,11 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
 ]
+
+[project.optional-dependencies]
+# The ARL tools as LangChain or CrewAI tools (arl_protocol.agent_tools).
+langchain = ["langchain-core>=0.3"]
+crewai = ["crewai>=0.100"]
 
 [project.urls]
 Homepage = "https://arlcoin.io/build"

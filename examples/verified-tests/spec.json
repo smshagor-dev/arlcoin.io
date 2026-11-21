@@ -1,0 +1,29 @@
+{
+  "version": "arl-reexec/1",
+  "container_digest": "docker.io/library/node@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a",
+  "inputs": [
+    {
+      "kind": "git",
+      "path": "repo",
+      "url": "https://github.com/armanalabsai/arlcoin.io",
+      "commit": "8a07287a8b7e459cfd64dddfbfe587864847f6d2"
+    }
+  ],
+  "command": [
+    "sh",
+    "-c",
+    "node --test --test-reporter=tap > /tmp/tap.txt 2>&1; code=$?; grep -E '^# (tests|suites|pass|fail|cancelled|skipped|todo) ' /tmp/tap.txt > /out/summary.txt; exit $code"
+  ],
+  "workdir": "repo/examples/verified-tests",
+  "env": {
+    "TZ": "UTC"
+  },
+  "outputs": ["summary.txt"],
+  "limits": {
+    "seconds": 300,
+    "memory_mb": 512,
+    "cpus": 1
+  },
+  "verifier_digest": "sha256:02119efebb69c51cd27855462ab8618d4d6f8cc0ebbc2e6943b41f9ca99efc02",
+  "expected_exit_code": 0
+}

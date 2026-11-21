@@ -11,6 +11,7 @@
 Amounts are plain token units ("10" is 10 ARL, or 10 USDC with token="USDC").
 """
 
+from .agent_tools import ArlTool, arl_tools, crewai_tools, langchain_tools
 from .client import ESCROWS, EVALUATORS, STATUS, Arl, ArlError, Outcomes, outcomes_of
 from .compute_stream import (
     COMPUTE_PAYMENT,
@@ -37,6 +38,7 @@ __all__ = [
     "AgentScore",
     "Arl",
     "ArlError",
+    "ArlTool",
     "COMPUTE_PAYMENT",
     "ComputeStreams",
     "ESCROWS",
@@ -52,12 +54,15 @@ __all__ = [
     "StreamState",
     "agent_passport",
     "agent_score",
+    "arl_tools",
     "badge_url",
+    "crewai_tools",
     "job_audit",
     "job_receipt",
+    "langchain_tools",
     "open_task",
     "outcomes_of",
     "trust_graph",
     "validators",
 ]
-__version__ = "0.6.0"
+__version__ = "0.7.0"

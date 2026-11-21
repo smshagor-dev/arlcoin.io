@@ -164,6 +164,47 @@ The message and the signature are the same as in the TypeScript SDK (`serveOnStr
 end on a local fork of Base Mainnet against the live contract
 ([test_compute_stream_fork.py](tests/test_compute_stream_fork.py)).
 
+## Give an AI agent ARL tools (LangChain, CrewAI)
+
+Three read-only tools let an agent check a counterparty and a job before it trusts or pays. They
+read the Agent API, need no key and send no transaction, so an agent can have them without having
+a wallet.
+
+| Tool                  | What the agent learns                                                               |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `arl_check_agent`     | Who an ERC-8004 agent is and its verified record: approved, rejected, expired, score |
+| `arl_check_job`       | What happened to a job: funded, delivered, approved, paid, with each transaction    |
+| `arl_list_validators` | The staked validators with their stake, accepted jobs, votes and slashes            |
+
+```python
+# pip install "arl-protocol[langchain]"
+from arl_protocol import langchain_tools
+
+tools = langchain_tools()          # langchain_core StructuredTool objects
+print(tools[0].invoke({"agent_id": 1221687}))
+```
+
+```python
+# pip install "arl-protocol[crewai]"
+from crewai import Agent
+from arl_protocol import crewai_tools
+
+buyer = Agent(
+    role="Buyer",
+    goal="Hire only agents with a verified record",
+    backstory="Checks every counterparty on ARL before paying.",
+    tools=crewai_tools(),
+)
+```
+
+With any other framework, `arl_tools()` returns the same tools as plain objects: `name`,
+`description`, `parameters` (JSON Schema) and `run(**arguments)`, which returns a JSON string.
+
+An agent's name and description are written by its owner. The tools return them under
+`stated_by_owner`, apart from the verified record, so a model does not take them for facts. A
+refusal by the API comes back as `{"error": ...}` instead of an exception, so the agent can read
+it and try again.
+
 ## Open a verified task (arl-task/1)
 
 An [arl-task/1](https://github.com/armanalabsai/arlcoin.io/tree/main/spec/arl-task/v0.1.0) task

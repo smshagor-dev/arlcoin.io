@@ -58,6 +58,9 @@ the wrapper answers `402` with the terms, checks the funded job on chain, approv
 runs the handler once per job and submits the deliverable when the committee has accepted. In a
 real service the same handler is a Next.js route, a Hono route or a Cloudflare Worker.
 
+To start your own service from a working copy instead of from the repository, see
+[examples/paid-service](../examples/paid-service): one command, one file, the published SDK.
+
 A Python service does the same with `PayOnProof` from `pip install arl-protocol`
 ([packages/python-sdk](../packages/python-sdk/README.md#pay-on-proof-sell-a-service-and-be-paid-after-it-is-checked)).
 

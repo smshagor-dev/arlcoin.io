@@ -1,0 +1,7 @@
+web3<8,>=7
+
+[crewai]
+crewai>=0.100
+
+[langchain]
+langchain-core>=0.3

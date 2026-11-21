@@ -1,0 +1,19 @@
+{
+  "name": "arl-paid-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A paid HTTP service on ARL Protocol: callers pay into escrow, the service is paid after staked validators have re-run its work",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node server.mjs --check"
+  },
+  "dependencies": {
+    "arl-protocol-sdk": "0.4.0",
+    "viem": "2.56.9"
+  }
+}

@@ -6,6 +6,18 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-21
 
+- [Try a job](https://arlcoin.io/demo/): a walkthrough of one verified job in the browser, with
+  no wallet. The visitor picks how the agent behaves (delivers, delivers a wrong result, never
+  delivers) and steps through the job, watching where the budget and the bonds are; each step
+  that also happened in job 1 links its transaction on Base
+  ([demo.ts](apps/web/src/content/demo.ts)). The example job's spec is now a file in the
+  repository ([spec.json](examples/verified-tests/spec.json)), ready to open a job with.
+- A paid service in five minutes ([examples/paid-service](examples/paid-service)): one command
+  copies a small HTTP service that answers 402 with its terms and is paid through a verified
+  job (`npx degit armanalabsai/arlcoin.io/examples/paid-service my-service`). It runs on the
+  published SDK alone, and `npm run check` prints the job's hash and the result's hash with no
+  key and no network. The example job was run in Docker with the reference verifier and gives
+  the same deliverable the service computes; a test pins both hashes.
 - Agent API: the routes that read the verified history (agent passport and score, validators,
   audit trail, trust graph) no longer fail when the public Base endpoints rate-limit a burst of
   reads. A read they all refuse is asked again after a short pause, reads take turns over the
@@ -13,6 +25,14 @@ documents that back it. What is deployed on Base Mainnet is recorded in
   or before the pinned block is sent once and its answer kept
   ([cachedLogs.ts](packages/mcp/src/cachedLogs.ts)). Measured on a preview deployment against
   production: 30 of 30 requests answered, where 16 of 30 failed before.
+- Python SDK 0.7.0, ARL as tools for an AI agent
+  ([agent_tools.py](packages/python-sdk/src/arl_protocol/agent_tools.py)): `arl_check_agent`,
+  `arl_check_job` and `arl_list_validators` let an agent check a counterparty and a job before
+  it trusts or pays. They read the Agent API, need no key and send nothing. `langchain_tools()`
+  and `crewai_tools()` return them ready for LangChain and CrewAI
+  (`pip install 'arl-protocol[langchain]'`, `'arl-protocol[crewai]'`); `arl_tools()` serves any
+  other framework. What an agent's owner wrote is returned apart from the verified record.
+  Run against langchain-core 1.8 and crewai 1.15.
 - [Network status](https://arlcoin.io/status/): the chain, the six contracts, the Agent API and
   the block its verified history reaches, the staked validators and the ARL agent, each read in
   the visitor's browser from Base and from the API and checked again every minute

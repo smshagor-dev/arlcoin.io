@@ -50,7 +50,7 @@ jobs:
       - name: Python package (arl_protocol)
         working-directory: packages/python-sdk
         run: |
-          pip install . pytest
+          pip install ".[langchain]" pytest
           python -m pytest -q tests
 
   contracts:
