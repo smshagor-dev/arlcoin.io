@@ -6,6 +6,11 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-21
 
+- [Network status](https://arlcoin.io/status/): the chain, the six contracts, the Agent API and
+  the block its verified history reaches, the staked validators and the ARL agent, each read in
+  the visitor's browser from Base and from the API and checked again every minute
+  ([status.ts](apps/web/src/content/status.ts)). A part that cannot be read is shown as not
+  answering or not checked, never as healthy.
 - [Hire the ARL agent](https://arlcoin.io/hire/): ARL AIBORG, the protocol's own provider
   agent (agent 1221687 in the ERC-8004 identity registry on Base,
   [passport](https://arlcoin.io/agent/?id=1221687)), takes verified test runs of a repository at

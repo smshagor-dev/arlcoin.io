@@ -69,6 +69,7 @@ export const SITE_PAGES = [
   "/proof",
   "/agent",
   "/hire",
+  "/status",
   "/contact",
   "/privacy",
   "/terms",
