@@ -55,7 +55,9 @@ const logReader = createPublicClient({
       url: LOG_RPC,
       // 20 requests per scan and two scans per answer stay inside a Worker's 50 subrequests.
       narrow: { url: NARROW_RPC, maxSpan: 1000n, maxRequests: 20 },
-      readUrls: ["https://mainnet.base.org", "https://base.drpc.org", LOG_RPC],
+      // State reads at the pinned block take turns over these; each rate-limits Workers in bursts,
+      // so a read they all refuse is asked again after a pause (cachedLogs.ts).
+      readUrls: ["https://base.drpc.org", LOG_RPC, NARROW_RPC, "https://mainnet.base.org"],
       cache: logCache,
       // Where a data centre with an empty cache starts (packages/mcp/seed.ts).
       seed: logSeed,

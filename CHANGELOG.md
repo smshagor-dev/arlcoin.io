@@ -6,6 +6,13 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-21
 
+- Agent API: the routes that read the verified history (agent passport and score, validators,
+  audit trail, trust graph) no longer fail when the public Base endpoints rate-limit a burst of
+  reads. A read they all refuse is asked again after a short pause, reads take turns over the
+  endpoints, a revert is taken as the answer instead of being retried, and a read of a block at
+  or before the pinned block is sent once and its answer kept
+  ([cachedLogs.ts](packages/mcp/src/cachedLogs.ts)). Measured on a preview deployment against
+  production: 30 of 30 requests answered, where 16 of 30 failed before.
 - [Network status](https://arlcoin.io/status/): the chain, the six contracts, the Agent API and
   the block its verified history reaches, the staked validators and the ARL agent, each read in
   the visitor's browser from Base and from the API and checked again every minute

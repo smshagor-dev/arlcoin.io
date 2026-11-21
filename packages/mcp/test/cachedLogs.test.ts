@@ -244,3 +244,99 @@ describe("several published snapshots", () => {
     assert.equal(freshestSnapshot([]), undefined);
   });
 });
+
+describe("reads that are not log scans", () => {
+  const noCache: LogCache = {
+    match: () => Promise.resolve(undefined),
+    put: () => Promise.resolve(),
+  };
+  /** A provider whose endpoints answer as `answer` says; `asked` lists "host method". */
+  function reader(
+    answer: (host: string, method: string, nth: number) => Response,
+    extra: Partial<Parameters<typeof cachedLogsProvider>[0]> = {},
+  ) {
+    const asked: string[] = [];
+    const provider = cachedLogsProvider({
+      url: WIDE,
+      readUrls: ["https://one.example", "https://two.example"],
+      cache: noCache,
+      readRetryMs: [0, 0],
+      fetch: ((url: string, init: { body: string }) => {
+        const { method } = JSON.parse(init.body) as { method: string };
+        const host = new URL(url).host.split(".")[0] ?? "";
+        asked.push(`${host} ${method}`);
+        return Promise.resolve(answer(host, method, asked.length));
+      }) as unknown as typeof fetch,
+      ...extra,
+    });
+    return { provider, asked };
+  }
+  const call = (block: string) => ({ method: "eth_call", params: [{ to: "0xabc" }, block] });
+  const busy = () => new Response("", { status: 429 });
+
+  it("asks again after a pause when every endpoint refuses, and gives up after the last round", async () => {
+    // Both endpoints refuse the first round; the second round is answered.
+    const later = reader((_, __, nth) => (nth <= 2 ? busy() : Response.json({ result: "0x1" })));
+    assert.equal(await later.provider.request(call("latest")), "0x1");
+    assert.equal(later.asked.length, 3);
+
+    const never = reader(busy);
+    await assert.rejects(() => never.provider.request(call("latest")), /429/);
+    // Three rounds over two endpoints.
+    assert.equal(never.asked.length, 6);
+  });
+
+  it("takes a revert as the answer: no other endpoint and no second round", async () => {
+    const s = reader(() =>
+      Response.json({ error: { code: 3, message: "execution reverted: no such token" } }),
+    );
+    await assert.rejects(() => s.provider.request(call("latest")), /execution reverted/);
+    assert.equal(s.asked.length, 1);
+    // The endpoint is not set aside for it: the next read goes on taking turns.
+    await assert.rejects(() => s.provider.request(call("latest")));
+    assert.deepEqual(s.asked, ["one eth_call", "two eth_call"]);
+  });
+
+  it("takes turns over the endpoints", async () => {
+    const s = reader(() => Response.json({ result: "0x1" }));
+    for (let i = 0; i < 4; i++) await s.provider.request(call("latest"));
+    assert.deepEqual(
+      s.asked.map((a) => a.split(" ")[0]),
+      ["one", "two", "one", "two"],
+    );
+  });
+
+  it("pinned: sends a read of a block at or before the pin once, and a later or moving one every time", async () => {
+    const made = setup(120_000n);
+    await made.provider.request(logs(1n, 120_000n));
+    const seed = Object.fromEntries(made.store); // reaches block 119,000
+    const s = reader(() => Response.json({ result: "0x2a" }), { seed, pinned: true });
+
+    for (let i = 0; i < 3; i++) assert.equal(await s.provider.request(call(h(119_000n))), "0x2a");
+    assert.equal(s.asked.length, 1);
+    // Another block is another read; the block after the pin and "latest" are never kept.
+    await s.provider.request(call(h(118_000n)));
+    assert.equal(s.asked.length, 2);
+    for (let i = 0; i < 2; i++) await s.provider.request(call(h(119_001n)));
+    for (let i = 0; i < 2; i++) await s.provider.request(call("latest"));
+    assert.equal(s.asked.length, 6);
+  });
+
+  it("pinned: does not keep a read that failed", async () => {
+    const made = setup(120_000n);
+    await made.provider.request(logs(1n, 120_000n));
+    const seed = Object.fromEntries(made.store);
+    const s = reader((_, __, nth) => (nth <= 6 ? busy() : Response.json({ result: "0x2a" })), {
+      seed,
+      pinned: true,
+    });
+    await assert.rejects(() => s.provider.request(call(h(119_000n))));
+    assert.equal(await s.provider.request(call(h(119_000n))), "0x2a");
+  });
+
+  it("without a pin, sends a named read every time", async () => {
+    const s = reader(() => Response.json({ result: "0x2a" }));
+    for (let i = 0; i < 2; i++) await s.provider.request(call(h(5n)));
+    assert.equal(s.asked.length, 2);
+  });
+});

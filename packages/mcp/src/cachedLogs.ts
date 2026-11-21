@@ -12,7 +12,11 @@
 // - The blocks after the entry are read from the wide endpoint. When it refuses they are read from
 //   an endpoint with a narrow range limit, a bounded number of requests at a time: a long scan
 //   then takes several requests to catch up, and each one stores what it read.
-// - Everything that is not `eth_getLogs` goes to the other endpoints, tried in order.
+// - Everything that is not `eth_getLogs` goes to the other endpoints, taking turns. A request
+//   they all refuse (public endpoints rate-limit shared addresses in bursts) is asked again after
+//   a short pause; a call the chain itself rejects, such as a revert, is final and is not repeated.
+//   A read of a named block at or before the pinned block cannot change, so its answer is kept and
+//   the same read is not sent twice.
 //
 // - Where even that is not dependable (public endpoints refuse most requests from Cloudflare), the
 //   stored scans come from outside: a seed shipped with the deployment and a snapshot a scheduled
@@ -66,6 +70,11 @@ export interface CachedLogsOptions {
   /** Logs are stored only for blocks at least this far behind the head. */
   finality?: bigint;
   timeoutMs?: number;
+  /**
+   * Pauses, in milliseconds, before a read every endpoint refused is asked again: one more round
+   * per entry. Defaults to two rounds, 250 ms and 750 ms later.
+   */
+  readRetryMs?: readonly number[];
 }
 
 interface RpcRequest {
@@ -91,6 +100,32 @@ const SNAPSHOT_EVERY_MS = 300_000;
 
 /** How long an endpoint that failed is skipped while another one answers. */
 const COOL_DOWN_MS = 30_000;
+
+/** Pauses before a read that every endpoint refused is asked again. */
+const READ_RETRY_MS: readonly number[] = [250, 750];
+
+/** Most answers of unchanging reads kept in memory; past it the oldest half is dropped. */
+const MAX_KEPT_READS = 2_000;
+
+/** Where each method that reads state names its block, by position in `params`. */
+const BLOCK_PARAM: Readonly<Record<string, number>> = {
+  eth_call: 1,
+  eth_getBlockByNumber: 0,
+  eth_getCode: 1,
+  eth_getBalance: 1,
+  eth_getStorageAt: 2,
+};
+
+/**
+ * The chain's own answer that a call fails (a revert, an invalid argument): asking another
+ * endpoint, or asking again, gives the same answer.
+ */
+export class RpcRejection extends Error {
+  override name = "RpcRejection";
+}
+
+const REJECTION_CODES = new Set([3, -32602, -32601, -32600]);
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const hex = (v: unknown): bigint | null =>
   typeof v === "string" && /^0x[0-9a-fA-F]+$/.test(v) ? BigInt(v) : null;
@@ -146,26 +181,67 @@ export function cachedLogsProvider(opts: CachedLogsOptions) {
       error?: { message?: string; code?: number };
     };
     if (body.error) {
-      throw new Error(`${body.error.message ?? "RPC error"} (${String(body.error.code ?? "")})`);
+      const text = `${body.error.message ?? "RPC error"} (${String(body.error.code ?? "")})`;
+      const rejected =
+        REJECTION_CODES.has(body.error.code ?? 0) || /execution reverted/i.test(text);
+      throw rejected ? new RpcRejection(text) : new Error(text);
     }
     return body.result;
   }
 
   /** When each read endpoint last failed: it is skipped for a while as long as another answers. */
   const failedAt = new Map<string, number>();
+  const retryMs = opts.readRetryMs ?? READ_RETRY_MS;
+  /** Reads take turns over the endpoints, so one endpoint's rate limit is not hit by every read. */
+  let turn = 0;
   async function read(method: string, params: unknown): Promise<unknown> {
-    const now = Date.now();
-    const rested = readUrls.filter((u) => now - (failedAt.get(u) ?? -COOL_DOWN_MS) >= COOL_DOWN_MS);
     let last: unknown;
-    for (const url of rested.length > 0 ? rested : readUrls) {
-      try {
-        return await ask(url, method, params);
-      } catch (e) {
-        failedAt.set(url, Date.now());
-        last = e;
+    for (let round = 0; ; round++) {
+      const now = Date.now();
+      const rested = readUrls.filter(
+        (u) => now - (failedAt.get(u) ?? -COOL_DOWN_MS) >= COOL_DOWN_MS,
+      );
+      const list = rested.length > 0 ? rested : readUrls;
+      const first = turn++ % list.length;
+      for (const url of [...list.slice(first), ...list.slice(0, first)]) {
+        try {
+          return await ask(url, method, params);
+        } catch (e) {
+          // The chain's own refusal is the answer; the endpoint did nothing wrong.
+          if (e instanceof RpcRejection) throw e;
+          failedAt.set(url, Date.now());
+          last = e;
+        }
       }
+      const pause = retryMs[round];
+      if (pause === undefined) throw last;
+      await sleep(pause);
     }
-    throw last;
+  }
+
+  /** Answers of reads that cannot change (see `kept`), by method and parameters. */
+  const keptReads = new Map<string, Promise<unknown>>();
+  /**
+   * `read`, asked once: a read of a named block at or before the pinned block always has the same
+   * answer, so it is kept for as long as this provider lives. A failed read is not kept.
+   */
+  async function kept(method: string, params: unknown): Promise<unknown> {
+    const at = BLOCK_PARAM[method];
+    const args = Array.isArray(params) ? (params as unknown[]) : [];
+    const block = at === undefined ? null : hex(args[at]);
+    const pinnedAt = block === null || !opts.pinned ? null : await pin();
+    if (block === null || pinnedAt === null || block > pinnedAt) return read(method, params);
+    const key = `${method} ${JSON.stringify(params)}`;
+    let answer = keptReads.get(key);
+    if (!answer) {
+      if (keptReads.size >= MAX_KEPT_READS) {
+        for (const old of [...keptReads.keys()].slice(0, MAX_KEPT_READS / 2)) keptReads.delete(old);
+      }
+      answer = read(method, params);
+      keptReads.set(key, answer);
+      answer.catch(() => keptReads.delete(key));
+    }
+    return answer;
   }
 
   // The head is read once per burst of requests: it only decides how far the entry may move.
@@ -287,15 +363,20 @@ export function cachedLogsProvider(opts: CachedLogsOptions) {
     return refreshing;
   }
 
+  /** The pin of the scans it was computed from: they are parsed once, not on every read. */
+  let pinned: { of: typeof known; at: bigint | null } | undefined;
   /** The block every known scan reaches: where the chain is pinned. Null when nothing is known. */
   async function pin(): Promise<bigint | null> {
     await refresh();
-    let lowest: bigint | null = null;
-    for (const stored of Object.values(known)) {
-      const v = parse(stored);
-      if (v && (lowest === null || v.to < lowest)) lowest = v.to;
+    if (pinned?.of !== known) {
+      let lowest: bigint | null = null;
+      for (const stored of Object.values(known)) {
+        const v = parse(stored);
+        if (v && (lowest === null || v.to < lowest)) lowest = v.to;
+      }
+      pinned = { of: known, at: lowest };
     }
-    return lowest;
+    return pinned.at;
   }
 
   const scans = new Map<string, Promise<Scan>>();
@@ -395,10 +476,10 @@ export function cachedLogsProvider(opts: CachedLogsOptions) {
         if (at !== null) {
           return method === "eth_blockNumber"
             ? toHex(at)
-            : read(method, [toHex(at), ...args.slice(1)]);
+            : kept(method, [toHex(at), ...args.slice(1)]);
         }
       }
-      if (method !== "eth_getLogs") return read(method, params);
+      if (method !== "eth_getLogs") return kept(method, params);
       await refresh();
       const given = (Array.isArray(params) ? params[0] : undefined) as
         Record<string, unknown> | undefined;
