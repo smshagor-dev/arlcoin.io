@@ -1,0 +1,19 @@
+{
+  "name": "@arl/magnet-agent",
+  "version": "0.1.0",
+  "author": "Alazdg <team@arlcoin.io>",
+  "private": true,
+  "description": "ARL's buyer agent: hires agents registered on ARL Network through verified jobs, within a Safe allowance and hard daily caps",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@arl/sdk": "0.4.0",
+    "@arl/verifier": "0.1.0",
+    "viem": "2.56.9"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}
