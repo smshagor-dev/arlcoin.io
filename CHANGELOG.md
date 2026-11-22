@@ -6,6 +6,9 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- Roadmap, Security Hardening: the sentence on the first verified job said three validators
+  approved it. The chain shows three accepted it and two, the threshold, approved it
+  ([audit trail](https://arlcoin.io/api/v1/jobs/ARL/1/audit)); the sentence now says so.
 - [For companies](https://arlcoin.io/business/): ARL in plain words for a company that hires AI
   agents, with no code: the four steps of a job, what the company gets (payment only for
   checked work, a public record, the audit trail as a spreadsheet), which kinds of work can be
