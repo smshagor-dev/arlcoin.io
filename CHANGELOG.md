@@ -6,6 +6,7 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- Agent passport everywhere: an agent that registers on the Network screen is shown its agent number and its passport link ([arlcoin.io/agent](https://arlcoin.io/agent/)) as soon as the registration is mined; every listed service links to its passport; the MCP server and Agent API add the passport link to an agent's score and passport answers.
 - SDK: `openVerifiedJob` now defaults the committee bond to the evaluator's own minimum (read from the chain; 100 ARL on Base Mainnet) and refuses a lower one before sending anything. It used to default to 1 ARL, which Base Mainnet's evaluator rejects after the job was already created ([verified.ts](packages/sdk/src/verified.ts)).
 - Agent tools: ARL is listed in the official MCP Registry as `io.github.armanalabsai/arl-protocol`, pointing at the hosted server `https://arlcoin.io/mcp` ([server.json](server.json)); directories that mirror the registry pick it up from there.
 - Agent tools: the MCP server is hosted at `https://arlcoin.io/mcp` (Streamable HTTP, stateless, read-only), so an agent can add ARL as a remote MCP server with no install ([streamable.ts](packages/mcp/src/streamable.ts), [functions/mcp.js](functions/mcp.js)). An agent with no verified outcome yet now gets a short `join` hint in its score and passport: where to register and how to start a verified record.

@@ -436,6 +436,7 @@ export function arlTools(opts: ToolOptions): Tool[] {
           ...r.score,
           outcomes: r.outcomes,
           skipped: r.skipped,
+          passport: `https://arlcoin.io/agent/?id=${id.toString()}`,
           ...(r.outcomes.length === 0 ? { join: JOIN_HINT } : {}),
         };
       },
@@ -463,6 +464,7 @@ export function arlTools(opts: ToolOptions): Tool[] {
           ...score,
           outcomes: p.outcomes,
           badge: `https://arlcoin.io/api/v1/agents/${id.toString()}/badge.svg`,
+          passport: `https://arlcoin.io/agent/?id=${id.toString()}`,
           ...(p.outcomes.length === 0 ? { join: JOIN_HINT } : {}),
         };
       },

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { formatUnits, isAddress } from "viem";
+import { formatUnits, isAddress, parseEventLogs } from "viem";
 import type { Address } from "viem";
-import { useAccount, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 
 import { Facts, PageTitle, RequireWallet, Stat } from "~~/components/arl/ui";
 import { useArlServices } from "~~/hooks/arl/useArlServices";
@@ -24,6 +24,9 @@ import {
   identityRegistryAbi,
   validateService,
 } from "~~/lib/registry";
+
+/** An agent's public passport on arlcoin.io: who owns it and what it verifiably delivered. */
+const passportUrl = (agentId: bigint) => `https://arlcoin.io/agent/?id=${agentId.toString()}`;
 
 export default function NetworkPage() {
   return (
@@ -120,6 +123,15 @@ function ServiceRow({
         >
           {new URL(service.endpoint).host}
         </a>
+        <a
+          className="link"
+          href={passportUrl(service.agentId)}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid={`passport-${service.agentId.toString()}`}
+        >
+          Passport
+        </a>
       </div>
       <div className="flex gap-2">
         {IS_LOCAL ? (
@@ -175,6 +187,8 @@ function RegisterForm() {
   const { data: token } = useDeployedContractInfo({ contractName: "ARLToken" });
   const { writeContractAsync } = useWriteContract();
   const transact = useTransactor();
+  const client = usePublicClient();
+  const [registered, setRegistered] = useState<bigint>();
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -254,6 +268,16 @@ function RegisterForm() {
           args: [uri],
         }),
       );
+      if (hash && client) {
+        // The new agent's number, from the registry's own event: it is the agent's passport.
+        const receipt = await client.waitForTransactionReceipt({ hash });
+        const [event] = parseEventLogs({
+          abi: identityRegistryAbi,
+          eventName: "Registered",
+          logs: receipt.logs,
+        });
+        setRegistered(event?.args.agentId);
+      }
       if (hash)
         setForm({
           name: "",
@@ -290,6 +314,20 @@ function RegisterForm() {
           on-chain checks the hardware. You can take the service offline later.
         </p>
       </div>
+      {registered !== undefined ? (
+        <p className="glass-chip px-4 py-3 text-sm" data-testid="registered-passport">
+          Registered as agent #{registered.toString()}. Its passport, where every verified job it
+          does is recorded:{" "}
+          <a
+            className="link"
+            href={passportUrl(registered)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {passportUrl(registered).replace("https://", "")}
+          </a>
+        </p>
+      ) : null}
       <form
         className="grid gap-3 sm:grid-cols-2"
         onSubmit={(e) => {
