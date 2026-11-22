@@ -92,6 +92,21 @@ of the members, bound to the poll (scope) and the chosen option (message). The c
 one proof per member per poll. On the local chain the group admin is account 0 and votes are sent
 by a relayer (account 6), so the sending address is not the voter's wallet either.
 
+The screen works for any group, not only the demo one ([privatePoll.ts](../apps/dapp/lib/privatePoll.ts)):
+
+- **A poll is a link.** On chain a poll is a scope (the group number in the upper 128 bits, the
+  poll number below) and numbered messages. The question and the options travel in the link the
+  admin shares (`?group=&poll=&q=&o=&o=`), and the page says so. A link cannot move a vote: the
+  scope follows from the group and the poll number, and a link that cannot be read is refused.
+- **Admin tools** (`?tools`, and the screen without a link outside the local chain): start a
+  group from a pasted list of commitments, add members to a group the connected wallet
+  administers, and make the link of a poll. A list the contract would refuse (zero, outside the
+  field, a repeated member) is refused before anything is signed.
+- **Voting from a link** has no demo roles: a member who is not in the group yet is shown the
+  commitment to send to the admin, and the vote is sent by the connected wallet. The proof never
+  says which member voted, but the sending wallet is public, and the page says how to keep the
+  two apart (create the identity, then switch the wallet to an account that is not linked).
+
 Privacy notes: bb.js downloads its public proving parameters (CRS) from Aztec's CDN
 (`crs.aztec-cdn.foundation`); the request carries nothing about the voter. Anyone who can see
 both who joined and when a vote arrives in a very small group can guess more; the demo group is

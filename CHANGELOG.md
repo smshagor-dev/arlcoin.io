@@ -6,6 +6,13 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- App, Private: the screen works for any group, not only the local demo. A poll is a link that
+  carries its group, its number, the question and the options; an admin starts a group from a
+  list of commitments, adds members and makes poll links; a member opens the link and votes
+  from the connected wallet with a proof made in the browser
+  ([privatePoll.ts](apps/dapp/lib/privatePoll.ts), [app.md](docs/app.md#private-anonymous-polls)).
+  End-to-end tests run the whole flow on the local chain. On Base Mainnet the screen opens
+  when the contracts are recorded there.
 - Roadmap, Security Hardening: the sentence on the first verified job said three validators
   approved it. The chain shows three accepted it and two, the threshold, approved it
   ([audit trail](https://arlcoin.io/api/v1/jobs/ARL/1/audit)); the sentence now says so.

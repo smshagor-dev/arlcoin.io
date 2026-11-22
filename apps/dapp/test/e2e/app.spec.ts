@@ -247,17 +247,7 @@ test("private: identity, join, anonymous vote proven in the browser, one vote pe
   page,
 }) => {
   test.setTimeout(180_000);
-  // Serve bb.js's proving parameters from the local cache (see chain.ts).
-  await page.route(
-    /crs\.aztec-(cdn\.foundation|labs\.com)\/(g1_compressed|g2|grumpkin_g1_v2)\.dat$/,
-    async (route) => {
-      const file = /[a-z0-9_]+\.dat$/.exec(route.request().url())![0];
-      const body = readFileSync(join(CRS_DIR, file));
-      const range = /bytes=0-(\d+)/.exec(route.request().headers().range ?? "");
-      const end = range ? Math.min(Number(range[1]) + 1, body.length) : body.length;
-      await route.fulfill({ status: range ? 206 : 200, body: body.subarray(0, end) });
-    },
-  );
+  await serveCrs(page);
   await connect(page, "/private");
   await expect(page.getByTestId("zk-members")).toHaveText("3");
 
@@ -281,6 +271,85 @@ test("private: identity, join, anonymous vote proven in the browser, one vote pe
   await page.getByTestId("zk-vote-1").click();
   await expect(page.getByTestId("zk-status")).toContainText("already voted", { timeout: 60_000 });
   await expect(page.getByTestId("zk-count-1")).toHaveText("0");
+});
+
+// The flow Base Mainnet uses: no demo roles. The connected wallet is the group's admin and sends
+// the vote itself. Group 0 is the demo group, so the group created here is group 1.
+const OWN_QUERY = "group=1&poll=1&q=Ship+it%3F&o=Yes&o=No";
+const OWN_POLL = `/private?${OWN_QUERY}`;
+
+/** Serves bb.js's proving parameters from the local cache (see chain.ts). */
+async function serveCrs(page: Page) {
+  await page.route(
+    /crs\.aztec-(cdn\.foundation|labs\.com)\/(g1_compressed|g2|grumpkin_g1_v2)\.dat$/,
+    async (route) => {
+      const file = /[a-z0-9_]+\.dat$/.exec(route.request().url())![0];
+      const body = readFileSync(join(CRS_DIR, file));
+      const range = /bytes=0-(\d+)/.exec(route.request().headers().range ?? "");
+      const end = range ? Math.min(Number(range[1]) + 1, body.length) : body.length;
+      await route.fulfill({ status: range ? 206 : 200, body: body.subarray(0, end) });
+    },
+  );
+}
+
+test("private: an admin starts a group from commitments and makes a poll link", async ({
+  page,
+}) => {
+  await connect(page, "/private?tools");
+  await page.getByTestId("zk-identity").click();
+  const mine = (await page.getByTestId("zk-mine").textContent()) ?? "";
+  expect(mine).toMatch(/^\d{60,78}$/);
+
+  // A list the contract would refuse is refused before anything is signed.
+  await page.getByTestId("zk-first-members").fill(`${mine}\n0`);
+  await page.getByTestId("zk-create-group").click();
+  await expect(page.getByTestId("zk-status")).toContainText("line 2 is not a commitment");
+
+  await page.getByTestId("zk-first-members").fill(mine);
+  await page.getByTestId("zk-create-group").click();
+  await expect(page.getByTestId("zk-created-group")).toHaveText("Your group number is 1.");
+  await expect(page.getByTestId("zk-members")).toHaveText("1");
+
+  await page.getByTestId("zk-poll-question").fill("Ship it?");
+  await page.getByTestId("zk-poll-options").fill("Yes");
+  await expect(page.getByTestId("zk-poll-problem")).toHaveText("a poll needs at least two options");
+  await page.getByTestId("zk-poll-options").fill("Yes\nNo");
+  await expect(page.getByTestId("zk-poll-link")).toContainText(OWN_QUERY);
+});
+
+test("private: a member opens the poll link and votes from the connected wallet", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await serveCrs(page);
+  await connect(page, OWN_POLL);
+  await expect(page.getByTestId("zk-question")).toHaveText("2 · Ship it?");
+  await expect(page.getByTestId("zk-members")).toHaveText("1");
+  // No demo roles here: the page says who sends the transaction.
+  await expect(page.getByTestId("zk-sender-note")).toContainText(
+    "the wallet that sends the transaction is public",
+  );
+  await expect(page.getByTestId("zk-join")).toHaveCount(0);
+
+  await page.getByTestId("zk-identity").click();
+  await expect(page.getByTestId("zk-member")).toHaveText("Member");
+  await page.getByTestId("zk-vote-1").click();
+  await expect(page.getByTestId("zk-status")).toContainText(
+    "The proof does not say which member voted",
+    { timeout: 120_000 },
+  );
+  await expect(page.getByTestId("zk-count-1")).toHaveText("1");
+  await expect(page.getByTestId("zk-count-0")).toHaveText("0");
+
+  await page.getByTestId("zk-vote-0").click();
+  await expect(page.getByTestId("zk-status")).toContainText("already voted", { timeout: 60_000 });
+});
+
+test("private: a broken poll link is refused, and a missing group is named", async ({ page }) => {
+  await page.goto("/private?group=1&poll=1&q=Ship+it%3F&o=Yes");
+  await expect(page.getByTestId("zk-broken-link")).toContainText("at least two options");
+  await connect(page, "/private?group=99&poll=1&q=Ship+it%3F&o=Yes&o=No");
+  await expect(page.getByTestId("zk-no-group")).toContainText("Group 99 does not exist");
 });
 
 test("vesting: nothing before the cliff, then a release to the beneficiary", async ({ page }) => {
