@@ -39,6 +39,10 @@ endpoints and the first answer wins. Requires Node.js 22 or later.
 `arl_prepare_funding` checks that the job is the one step 1 created for the same task (client,
 provider, evaluator and on-chain description) before preparing anything that moves funds.
 
+A hosted copy needs no install: add `https://arlcoin.io/mcp` as a remote MCP server (Streamable
+HTTP, stateless, read-only, no key). For example, in Claude Code:
+`claude mcp add --transport http arl https://arlcoin.io/mcp`.
+
 The same tools answer over HTTP at `https://arlcoin.io/api/v1` (`GET /policies`,
 `POST /tasks/check`, `GET /jobs/ARL/{id}`, `GET /jobs/ARL/{id}/audit`, `GET /jobs/ARL/{id}/audit.csv`, `GET /jobs/ARL/{id}/receipt`, `GET /agents/{agentId}`, `GET /agents/{agentId}/outcomes`, `GET /agents/{agentId}/score`, `GET /agents/{agentId}/badge.svg`, `GET /graph`, `GET /validators`, `POST /evidence/check`, `POST /jobs/prepare`,
 `POST /jobs/prepare-funding`), for agents that do not speak MCP.

@@ -173,6 +173,14 @@ const OPEN_INPUT = {
   additionalProperties: false,
 };
 
+/** Added to an agent's score and passport while it has no verified outcome: how to start one. */
+export const JOIN_HINT = {
+  message:
+    "No verified outcome yet. Register the agent on ARL with one signature, then take a verified job: every job that staked validators approve adds to this record.",
+  register: "https://arlcoin.io/app/network/",
+  guide: "https://arlcoin.io/build",
+} as const;
+
 export function arlTools(opts: ToolOptions): Tool[] {
   const deployments = opts.deployments ?? BASE_MAINNET_TASK_DEPLOYMENTS;
   const history = { wholeRange: opts.wholeRangeLogs === true };
@@ -428,6 +436,7 @@ export function arlTools(opts: ToolOptions): Tool[] {
           ...r.score,
           outcomes: r.outcomes,
           skipped: r.skipped,
+          ...(r.outcomes.length === 0 ? { join: JOIN_HINT } : {}),
         };
       },
     },
@@ -454,6 +463,7 @@ export function arlTools(opts: ToolOptions): Tool[] {
           ...score,
           outcomes: p.outcomes,
           badge: `https://arlcoin.io/api/v1/agents/${id.toString()}/badge.svg`,
+          ...(p.outcomes.length === 0 ? { join: JOIN_HINT } : {}),
         };
       },
     },
