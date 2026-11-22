@@ -20,6 +20,11 @@ Two deliberate departures from the audit's suggestions:
   does not commit to a group, only to a root, and anyone can create a group with any root, so a
   per-group key would still let one proof be replayed into a second group that republishes the
   same root.
+  F-1 changed where a nullifier is recorded, not how it is checked: `signal()` does not itself
+  require the nullifier to be below the SNARK field modulus. The deployed UltraHonk verifier
+  rejects any public input at or above the modulus before the nullifier is recorded, and the
+  verifier is immutable, so this holds today. An explicit check in `signal()` is noted for the next
+  revision (reported as an informational suggestion on 2026-11-23).
 - **F-4:** the check is `cliffEnd > block.timestamp`, not `cliffStart > block.timestamp`, so the
   approved TGE deployment, whose cliffs started at deployment, stays valid.
 
