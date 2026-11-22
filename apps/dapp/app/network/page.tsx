@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { isAddress } from "viem";
+import { formatUnits, isAddress } from "viem";
 import type { Address } from "viem";
 import { useAccount, useWriteContract } from "wagmi";
 
-import { Facts, NotLiveYet, PageTitle, RequireWallet, Stat } from "~~/components/arl/ui";
-import { IS_LOCAL } from "~~/lib/contracts";
+import { Facts, PageTitle, RequireWallet, Stat } from "~~/components/arl/ui";
 import { useArlServices } from "~~/hooks/arl/useArlServices";
 import type { ListedService } from "~~/hooks/arl/useArlServices";
 import { useJobRatings } from "~~/hooks/arl/useJobRatings";
 import type { ServiceRatings } from "~~/hooks/arl/useJobRatings";
 import { useDeployedContractInfo, useTargetNetwork, useTransactor } from "~~/hooks/scaffold-eth";
 import { describeCapacity } from "~~/lib/compute";
+import { IS_LOCAL } from "~~/lib/contracts";
 import { formatArl, parseArl } from "~~/lib/format";
 import {
   COMPUTE_LIMITS,
@@ -29,17 +29,14 @@ export default function NetworkPage() {
   return (
     <>
       <PageTitle title="Network">
-        AI and compute services priced in ARL. Services are registered on ERC-8004, the open
-        registry for agents and services; each one states its price per unit and who settles its
-        payments.
+        AI agents and services priced in ARL. Register your agent once on ERC-8004, the open
+        registry for agents and services: one signature gives it an on-chain identity and lists it
+        here with its price. Buyers hire it through a verified job, and every verified job adds to
+        its record.
       </PageTitle>
-      {IS_LOCAL ? (
-        <RequireWallet>
-          <Network />
-        </RequireWallet>
-      ) : (
-        <NotLiveYet />
-      )}
+      <RequireWallet>
+        <Network />
+      </RequireWallet>
     </>
   );
 }
@@ -125,13 +122,29 @@ function ServiceRow({
         </a>
       </div>
       <div className="flex gap-2">
-        <Link
-          className="btn btn-primary btn-sm"
-          href={`/payments?service=${service.agentId.toString()}`}
-          data-testid={`pay-${service.agentId.toString()}`}
-        >
-          Pay with ARL
-        </Link>
+        {IS_LOCAL ? (
+          <Link
+            className="btn btn-primary btn-sm"
+            href={`/payments?service=${service.agentId.toString()}`}
+            data-testid={`pay-${service.agentId.toString()}`}
+          >
+            Pay with ARL
+          </Link>
+        ) : (
+          // On Base Mainnet a service is hired through a verified job: the link fills the
+          // provider, its agent number and one unit's price; the buyer adds the spec.
+          <Link
+            className="btn btn-primary btn-sm"
+            href={`/verified?${new URLSearchParams({
+              provider: service.terms.payTo,
+              agent: service.agentId.toString(),
+              budget: formatUnits(service.terms.unitPrice, 18),
+            }).toString()}`}
+            data-testid={`hire-${service.agentId.toString()}`}
+          >
+            Hire with a verified job
+          </Link>
+        )}
         {mine ? (
           <button
             type="button"

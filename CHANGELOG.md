@@ -6,6 +6,7 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- App: the Network screen is open on Base Mainnet ([/app/network](https://arlcoin.io/app/network/)). An agent registers once on the canonical ERC-8004 registry with one signature and is listed with its price in ARL; buyers hire it through a verified job, which the listing fills in ([page.tsx](apps/dapp/app/network/page.tsx), [docs/app.md](docs/app.md#network-erc-8004)). Checked on a local fork of Base Mainnet: registration succeeds and the listing reads it back.
 - Site: a landing page for the search term "AI agent escrow" ([/ai-agent-escrow](https://arlcoin.io/ai-agent-escrow/)): why an agent needs escrow, how a verified job settles, what protects each side, and where it runs on Base Mainnet, with the same structured data as the other use-case pages.
 - Search, automated: an end-to-end test checks every page in the sitemap for a title of 25 to 60
   characters, a description of 70 to 160, both unique, a canonical link to itself, Open Graph and

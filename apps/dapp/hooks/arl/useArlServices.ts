@@ -8,8 +8,15 @@ import { usePublicClient } from "wagmi";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import { IDENTITY_REGISTRY, identityRegistryAbi, parseRegistration } from "~~/lib/registry";
 import type { ArlService } from "~~/lib/registry";
-import { ARL, REFRESH_MS, deployBlock } from "~~/lib/contracts";
+import { ARL, IS_MAINNET, REFRESH_MS, deployBlock } from "~~/lib/contracts";
 import { eventsSince } from "~~/lib/logs";
+
+// The canonical ERC-8004 registry on Base Mainnet holds every project's agents; ARL services can
+// only exist from the release that opened the Network screen there, so the scan starts at that
+// block instead of the token's and stays a few requests long.
+const MAINNET_SERVICES_FROM_BLOCK = 60_877_000n;
+const servicesFromBlock = () =>
+  IS_MAINNET ? MAINNET_SERVICES_FROM_BLOCK : deployBlock(ARL.ARLToken);
 
 export interface ListedService extends ArlService {
   agentId: bigint;
@@ -30,7 +37,7 @@ export function useArlServices() {
     queryFn: async (): Promise<ListedService[]> => {
       if (!client || !token) return [];
       const [registered, updated] = await Promise.all([
-        eventsSince(client, deployBlock(ARL.ARLToken), (range) =>
+        eventsSince(client, servicesFromBlock(), (range) =>
           client.getContractEvents({
             address: IDENTITY_REGISTRY,
             abi: identityRegistryAbi,
@@ -38,7 +45,7 @@ export function useArlServices() {
             ...range,
           }),
         ),
-        eventsSince(client, deployBlock(ARL.ARLToken), (range) =>
+        eventsSince(client, servicesFromBlock(), (range) =>
           client.getContractEvents({
             address: IDENTITY_REGISTRY,
             abi: identityRegistryAbi,

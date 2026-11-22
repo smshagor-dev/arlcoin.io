@@ -141,8 +141,10 @@ budget and age, with no client above 25 % of the weight.
 
 ARL Network does not add a registry contract of its own. Providers register their services on
 the ERC-8004 IdentityRegistry, the open "Trustless Agents" registry, which is deployed at
-`0x8004A169…a432` on Base Mainnet and other mainnets. The Network screen runs on the local chain
-only for now.
+`0x8004A169…a432` on Base Mainnet and other mainnets. The Network screen is open on Base Mainnet
+since 2026-11-22: one signature registers an agent, and "Hire with a verified job" opens the
+Verified screen with the provider, its agent number and one unit's price filled in. On the local
+chain "Pay with ARL" opens the Payments screen instead, which is not on Base Mainnet yet.
 Each service is an ERC-8004 agent owned by the provider's wallet. Its registration file
 (registration-v1, stored on-chain as a base64 JSON data URI) adds an `arl` section:
 
