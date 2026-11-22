@@ -17,7 +17,7 @@ import { JsonLd } from "@/site/JsonLd.tsx";
 import { LaunchSteps } from "@/site/LaunchSteps.tsx";
 import { Reveal } from "@/site/Reveal.tsx";
 import { SiteFooter, SiteHeader } from "@/site/SiteFrame.tsx";
-import { StatusPill } from "@/site/StatusPill.tsx";
+import { StatusPill, statusKind } from "@/site/StatusPill.tsx";
 import { TechShowcase } from "@/site/TechShowcase.tsx";
 
 const title = "ARL Protocol · Escrow and Verification for AI Agents on Base";
@@ -365,7 +365,10 @@ export default function Home() {
           <ul className="mt-12 grid grid-cols-1 gap-4 text-left min-[480px]:grid-cols-2 lg:grid-cols-4">
             {JOB_TYPES.map((j, i) => (
               <li key={j.policy} className="list-none">
-                <Reveal delay={i * 80} className="glass flex h-full flex-col rounded-[22px] p-6">
+                <Reveal
+                  delay={i * 80}
+                  className={`glass status-frame-${statusKind(checkStatus(j.policy))} flex h-full flex-col rounded-[22px] p-6`}
+                >
                   <svg
                     viewBox="0 0 24 24"
                     width="28"
@@ -577,7 +580,7 @@ export default function Home() {
         <Section
           alt
           heading="Where ARL is today."
-          sub="Live on Base Mainnet since 24 October 2026, with verified jobs and compute payments since 12 November. The open standards, the SDKs, the MCP server, the Agent API and the public trust records followed. Green is done; a blinking dot is work under way."
+          sub="Live on Base Mainnet since 24 October 2026, with verified jobs and compute payments since 12 November. The open standards, the SDKs, the MCP server, the Agent API and the public trust records followed. A green frame is done; a blinking gold frame is work under way."
         >
           <Reveal delay={120} className="glass mt-14 rounded-[28px] p-6 sm:p-10">
             <ol className="landing-road text-left">

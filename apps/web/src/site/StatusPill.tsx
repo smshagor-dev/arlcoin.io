@@ -17,6 +17,8 @@ const KIND: Readonly<Record<Status, string>> = {
 };
 
 export const statusLabel = (status: Status): string => LABEL[status];
+/** `live`, `building` or `planned`: the value of `data-status` in the styles. */
+export const statusKind = (status: Status): string => KIND[status];
 
 export function StatusPill({ status, className = "" }: { status: Status; className?: string }) {
   return (

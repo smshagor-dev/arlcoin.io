@@ -929,73 +929,93 @@
   }
 }
 
+/* Where ARL is today: one framed tile per phase. A finished phase is lit in dollar green; a
+   phase under way blinks in the gold of the palette. The dot and the state line follow. */
 .landing-road {
   display: grid;
   grid-template-columns: 1fr;
-  border-left: 1px solid var(--color-line);
-  margin-left: 4px;
+  gap: 12px;
 }
 .landing-road li {
   position: relative;
-  padding: 0 0 24px 24px;
+  border: 1.5px solid var(--color-line);
+  border-radius: 16px;
+  padding: 16px 16px 16px 36px;
 }
 .landing-road li::before {
   content: "";
   position: absolute;
-  top: 5px;
-  left: -5px;
+  top: 22px;
+  left: 16px;
   width: 9px;
   height: 9px;
   border-radius: 50%;
   background: var(--color-fg-subtle);
 }
-/* Done phases light green (the hero's live dot); phases under way blink green. */
+.landing-road li[data-progress="done"] {
+  border-color: #85bb65;
+  box-shadow:
+    0 0 10px rgb(133 187 101 / 0.45),
+    inset 0 0 12px rgb(133 187 101 / 0.08);
+}
 .landing-road li[data-progress="done"]::before {
-  background: #7ee0a6;
-  box-shadow: 0 0 8px rgb(126 224 166 / 0.7);
+  background: #85bb65;
+  box-shadow: 0 0 8px rgb(133 187 101 / 0.9);
 }
-.landing-road li[data-progress="done"] .road-state,
-.landing-road li[data-progress="active"] .road-state {
-  color: #7ee0a6;
+.landing-road li[data-progress="done"] .road-state {
+  color: #a9d68c;
 }
-/* Work under way: the same green dot, blinking on and off. */
+.landing-road li[data-progress="active"] {
+  border-color: var(--color-accent);
+  animation: road-frame 1.6s ease-in-out infinite;
+}
 .landing-road li[data-progress="active"]::before {
-  background: #7ee0a6;
-  box-shadow: 0 0 8px rgb(126 224 166 / 0.7);
-  animation: road-blink 1.4s ease-in-out infinite;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px rgb(217 183 122 / 0.8);
+  animation: road-blink 1.6s ease-in-out infinite;
+}
+.landing-road li[data-progress="active"] .road-state {
+  color: var(--color-accent);
+}
+@keyframes road-frame {
+  0%,
+  100% {
+    border-color: var(--color-accent);
+    box-shadow:
+      0 0 12px rgb(217 183 122 / 0.55),
+      inset 0 0 12px rgb(217 183 122 / 0.1);
+  }
+  55% {
+    border-color: rgb(217 183 122 / 0.32);
+    box-shadow: 0 0 0 rgb(217 183 122 / 0);
+  }
 }
 @keyframes road-blink {
   0%,
-  45% {
-    opacity: 1;
-  }
-  70%,
-  85% {
-    opacity: 0.12;
-  }
   100% {
     opacity: 1;
   }
+  55% {
+    opacity: 0.15;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
+  .landing-road li[data-progress="active"],
   .landing-road li[data-progress="active"]::before {
     animation: none;
   }
+  .landing-road li[data-progress="active"] {
+    box-shadow: 0 0 10px rgb(217 183 122 / 0.4);
+  }
 }
-@media (min-width: 768px) {
+@media (min-width: 640px) {
+  .landing-road {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 900px) {
   .landing-road {
     grid-template-columns: repeat(4, 1fr);
-    border-left: 0;
-    margin-left: 0;
-  }
-  /* Two rows of four: each phase carries its own piece of the line. */
-  .landing-road li {
-    padding: 24px 16px 28px 0;
-    border-top: 1px solid var(--color-line);
-  }
-  .landing-road li::before {
-    top: -5px;
-    left: 0;
   }
 }
 /*
@@ -1507,4 +1527,24 @@ html.lenis body {
 .status-pill[data-status="building"] {
   border-color: rgb(217 183 122 / 0.6);
   color: #e3c58f;
+}
+.status-pill[data-status="building"] .status-dot {
+  animation: road-blink 1.6s ease-in-out infinite;
+}
+/* A card that carries a status wears it on its frame too (the four checks on the home page). */
+.status-frame-live {
+  border: 1.5px solid #85bb65;
+  box-shadow:
+    0 0 10px rgb(133 187 101 / 0.45),
+    inset 0 0 12px rgb(133 187 101 / 0.08);
+}
+.status-frame-building {
+  border: 1.5px solid var(--color-accent);
+  animation: road-frame 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-pill[data-status="building"] .status-dot,
+  .status-frame-building {
+    animation: none;
+  }
 }
