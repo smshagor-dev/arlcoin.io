@@ -65,6 +65,7 @@ export const verifiedEvaluatorAbi = parseAbi([
   "function outcomesOf(uint256 agentId) view returns (uint64 approved, uint64 rejected)",
   "function finalize(uint256 jobId)",
   "function minChallengeWindow() view returns (uint64)",
+  "function minBond() view returns (uint96)",
 ]);
 
 /** ARLVerifiedEvaluator.Phase, by index. */
@@ -98,7 +99,7 @@ export interface OpenVerifiedJobParams {
   expiresIn?: bigint;
   voteWindow?: bigint;
   challengeWindow?: bigint;
-  /** Bond floor in wei of the escrow token; the evaluator's minimum applies. */
+  /** Bond in wei of the escrow token; defaults to the evaluator's minimum, never below it. */
   bond?: bigint;
   /** ERC-8004 agent id of the provider, or 0. */
   providerAgentId?: bigint;
@@ -217,6 +218,16 @@ export async function openVerifiedJob(
     functionName: "minChallengeWindow",
   });
   const { voteWindow, challengeWindow, expiresIn } = defaultWindows(minChallengeWindow, p);
+  // The evaluator refuses a bond below its minimum (100 ARL on Base Mainnet): default to it and
+  // refuse a lower one here, before any transaction is sent.
+  const minBond = await publicClient.readContract({
+    address: evaluator,
+    abi: verifiedEvaluatorAbi,
+    functionName: "minBond",
+  });
+  const bond = p.bond ?? minBond;
+  if (bond < minBond)
+    throw new VerifiedJobError(`bond is below the evaluator's minimum ${String(minBond)}`);
   const { timestamp } = await publicClient.getBlock();
   const expiredAt = timestamp + expiresIn;
   const from = walletAccount(walletClient);
@@ -258,7 +269,7 @@ export async function openVerifiedJob(
         threshold: p.threshold,
         voteWindow,
         challengeWindow,
-        bond: p.bond ?? 10n ** 18n,
+        bond,
         providerAgentId: p.providerAgentId ?? 0n,
         specHash: p.specHash,
         committee: [...p.committee],
