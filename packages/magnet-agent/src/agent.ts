@@ -17,9 +17,11 @@ import {
   verifiedEvaluatorAbi,
   type VerifiedClients,
 } from "@arl/sdk";
-import { parseSpec, specHash } from "@arl/verifier";
+// The spec module only (not the package index, which also loads the Docker runner): Worker-safe.
+import { parseSpec, specHash } from "../../verifier/src/spec.ts";
 import { getAddress, parseAbi, type Address, type PublicClient } from "viem";
 
+import { emptyHistory, syncHistory, type History } from "./history.ts";
 import { DEFAULT_CAPS, planHires, type Caps, type Listing } from "./policy.ts";
 
 export const ECOSYSTEM_SAFE: Address = "0x90D8c082e9AdABE96804Ae9c6117Fd5b245F4cb1";
@@ -63,12 +65,15 @@ export const allowanceModuleAbi = parseAbi([
 const minBondAbi = parseAbi(["function minBond() view returns (uint96)"]);
 
 const STATUS_OPEN = 0;
+const STATUS_COMPLETED = 3;
 const PHASE_APPROVED = 2;
 const PHASE_REJECTED = 3;
 
 export interface RunOptions {
   /** Addresses never paid: team wallets, Safes, validators. */
   excluded: readonly Address[];
+  /** What earlier runs read (history.ts); the run returns the updated one in its report. */
+  history?: History | undefined;
   caps?: Caps;
   log?: (line: string) => void;
 }
@@ -78,6 +83,8 @@ export interface RunReport {
   funded: bigint[];
   opened: { jobId: bigint; agentId: bigint; provider: Address; budget: bigint }[];
   skipped: string[];
+  /** The history after this run's reads: store it for the next run. */
+  history?: History | undefined;
 }
 
 const DATA_URI = "data:application/json;base64,";
@@ -114,38 +121,16 @@ export function parseListing(
   }
 }
 
-async function listings(client: PublicClient, token: Address): Promise<Listing[]> {
-  const range = { fromBlock: NETWORK_FROM_BLOCK, toBlock: "latest" as const };
-  const [registered, updated] = await Promise.all([
-    client.getContractEvents({
-      address: IDENTITY_REGISTRY,
-      abi: registryAbi,
-      eventName: "Registered",
-      ...range,
-    }),
-    client.getContractEvents({
-      address: IDENTITY_REGISTRY,
-      abi: registryAbi,
-      eventName: "URIUpdated",
-      ...range,
-    }),
-  ]);
-  const latest = new Map<bigint, string>();
-  for (const log of [...registered, ...updated].sort((a, b) =>
-    a.blockNumber === b.blockNumber
-      ? a.logIndex - b.logIndex
-      : a.blockNumber < b.blockNumber
-        ? -1
-        : 1,
-  )) {
-    const id = log.args.agentId;
-    const uri = log.eventName === "Registered" ? log.args.agentURI : log.args.newURI;
-    if (id !== undefined && uri !== undefined) latest.set(id, uri);
-  }
+async function listings(
+  client: PublicClient,
+  token: Address,
+  uris: Record<string, string>,
+): Promise<Listing[]> {
   const out: Listing[] = [];
-  for (const [agentId, uri] of latest) {
+  for (const [id, uri] of Object.entries(uris)) {
     const terms = parseListing(uri, token);
     if (!terms) continue;
+    const agentId = BigInt(id);
     const owner = await client.readContract({
       address: IDENTITY_REGISTRY,
       abi: registryAbi,
@@ -175,20 +160,23 @@ export async function runOnce(clients: VerifiedClients, opts: RunOptions): Promi
     log(`skip: ${why}`);
   };
 
-  const mine = await publicClient.getContractEvents({
-    address: jobsAddr,
-    abi: jobsAbi,
-    eventName: "JobCreated",
-    args: { client: self },
-    fromBlock: AGENT_FROM_BLOCK,
-    toBlock: "latest",
-  });
-  const now = (await publicClient.getBlock()).timestamp;
+  const head = await publicClient.getBlock();
+  const now = head.timestamp;
+  // Read only the blocks the stored history has not seen (history.ts); a run without one starts
+  // from the agent's first block.
+  const history = await syncHistory(
+    publicClient,
+    opts.history ?? emptyHistory(self, AGENT_FROM_BLOCK),
+    IDENTITY_REGISTRY,
+    jobsAddr,
+    head.number,
+  );
+  report.history = history;
 
   // 1 and 2: settle and fund the agent's own jobs.
-  for (const ev of mine) {
-    const jobId = ev.args.jobId;
-    if (jobId === undefined) continue;
+  for (const entry of history.jobs) {
+    if (history.done.includes(entry.jobId)) continue;
+    const jobId = BigInt(entry.jobId);
     const job = await publicClient.readContract({
       address: jobsAddr,
       abi: jobsAbi,
@@ -201,6 +189,17 @@ export async function runOnce(clients: VerifiedClients, opts: RunOptions): Promi
       functionName: "getVerdict",
       args: [jobId],
     });
+    const unfundedAndExpired = job.status === STATUS_OPEN && job.expiredAt <= now;
+    if (
+      (job.status >= STATUS_COMPLETED || unfundedAndExpired) &&
+      v.phase !== PHASE_APPROVED &&
+      v.phase !== PHASE_REJECTED
+    ) {
+      // Completed, rejected or expired (or never funded before its deadline), and no verdict left
+      // to finalize: settled for good.
+      history.done.push(entry.jobId);
+      continue;
+    }
     if ((v.phase === PHASE_APPROVED || v.phase === PHASE_REJECTED) && now >= v.challengeEnds) {
       try {
         await finalizeJob(clients, jobId);
@@ -246,21 +245,11 @@ export async function runOnce(clients: VerifiedClients, opts: RunOptions): Promi
   }
 
   // 3: hire new agents.
-  const opened = await Promise.all(
-    mine.flatMap((ev) =>
-      ev.args.provider === undefined
-        ? []
-        : [
-            publicClient
-              .getBlock({ blockNumber: ev.blockNumber })
-              .then((b) => ({ provider: ev.args.provider as Address, openedAt: b.timestamp })),
-          ],
-    ),
-  );
+  const opened = history.jobs.map((j) => ({ provider: j.provider, openedAt: BigInt(j.openedAt) }));
   const spendable =
     (await balance(publicClient, token, self)) + (await allowanceLeft(publicClient, self, token));
   const hires = planHires(
-    await listings(publicClient, token),
+    await listings(publicClient, token, history.uris),
     { self, excluded: opts.excluded, opened, spendable, now },
     caps,
   );

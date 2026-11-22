@@ -37,3 +37,25 @@ allowance. A third run must hire no one.
 anvil --fork-url https://base-rpc.publicnode.com --port 18547 --chain-id 8453
 node packages/magnet-agent/fork/rehearse.ts
 ```
+
+## Switching it on
+
+The agent runs from [`.github/workflows/magnet-agent.yml`](../../.github/workflows/magnet-agent.yml)
+on a schedule. Each run reads only the blocks after the previous run
+([`history.ts`](src/history.ts), kept in the Actions cache). Until the steps below are done it
+prints "nothing to do".
+
+1. **Agent key.** The owners create a new wallet for the agent and store its private key as the
+   repository secret `MAGNET_AGENT_KEY` (Settings > Secrets and variables > Actions). The key never
+   leaves GitHub's secret store and is never printed. Send the wallet a little ETH for gas.
+2. **Allowance.** Build the Safe transaction for that wallet and rehearse it on a fork:
+
+   ```sh
+   node packages/magnet-agent/fork/safe-batch.ts <agentAddress> 5000 --out agent-allowance.json
+   ```
+
+   Load `agent-allowance.json` in the Ecosystem & Growth Safe's Transaction Builder and sign it
+   (2 of 3). It enables the AllowanceModule, adds the agent as a delegate and allows 5,000 ARL with
+   no automatic reset. Each later tranche is the same command; it then only sets the new amount.
+3. **Pause.** Set the repository variable `MAGNET_PAUSED` to `true` to stop it; delete the
+   allowance in the Safe to take away its spending for good.

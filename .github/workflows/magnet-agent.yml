@@ -1,0 +1,55 @@
+name: Buyer agent
+
+# Runs ARL's buyer agent (packages/magnet-agent): it finalizes its settled jobs, funds jobs whose
+# provider set a budget, and hires new agents listed on ARL Network through verified jobs. Its ARL
+# comes only from the allowance the Ecosystem & Growth Safe owners grant through Safe's
+# AllowanceModule; they can delete it at any time.
+#
+# Switched on only when the owners set the MAGNET_AGENT_KEY secret (Settings > Secrets and
+# variables > Actions). Until then the run prints "nothing to do". Setting the variable
+# MAGNET_PAUSED to "true" pauses it without a code change. GitHub runs scheduled workflows less
+# often than asked; the agent does not need more: a job leaves at least a day between the end of
+# its challenge window and its deadline.
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: magnet-agent
+  cancel-in-progress: false
+
+# Actions are pinned to full commit SHAs; the tag is noted for review.
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # What earlier runs read, so this run reads only new blocks (packages/magnet-agent/src/history.ts).
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .magnet-state
+          key: magnet-state-${{ github.run_id }}
+          restore-keys: magnet-state-
+      - name: Run the agent once
+        env:
+          AGENT_KEY: ${{ secrets.MAGNET_AGENT_KEY }}
+          PAUSED: ${{ vars.MAGNET_PAUSED }}
+          STATE_FILE: .magnet-state/history.json
+        run: node packages/magnet-agent/src/cli.ts
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always() && hashFiles('.magnet-state/history.json') != ''
+        with:
+          path: .magnet-state
+          key: magnet-state-${{ github.run_id }}

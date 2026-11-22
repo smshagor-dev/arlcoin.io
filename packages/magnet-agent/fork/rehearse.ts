@@ -159,6 +159,8 @@ await pub.waitForTransactionReceipt({ hash: sb });
 
 const second = await runOnce(clients, {
   excluded,
+  // From here on each run reads only the blocks after the previous run (history.ts).
+  history: first.history,
   log: (l) => {
     console.log(" run2:", l);
   },
@@ -179,6 +181,7 @@ console.log(
 
 const third = await runOnce(clients, {
   excluded,
+  history: second.history,
   log: (l) => {
     console.log(" run3:", l);
   },

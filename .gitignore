@@ -40,3 +40,4 @@ dist/
 
 # Cloudflare build output (scripts/build-cloudflare.sh)
 /build/
+.magnet-state/
