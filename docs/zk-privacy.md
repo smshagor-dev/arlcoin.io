@@ -14,6 +14,8 @@ The record is [`contracts/deploy/base-mainnet-signal.json`](../contracts/deploy/
 It was written only after the deployed verifier accepted a real proof and refused the same proof
 with another message. The source of all four is verified on
 [Sourcify](https://repo.sourcify.dev/8453/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4) (full
+match), and the contract, the verifier and `RelationsLib` on
+[Basescan](https://basescan.org/address/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4#code) (exact
 match).
 
 Members of a group can **signal** (vote in a poll, attest, give feedback) without revealing which
