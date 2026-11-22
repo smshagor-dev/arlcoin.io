@@ -68,6 +68,40 @@ address, with the same code as the build, so the plan creates `RelationsLib` onl
 plan was rehearsed on a fork of Base Mainnet: three transactions, about 6.5 million gas, and the
 deployed verifier accepted a real proof.
 
+## The relayer
+
+A proof never says which member voted, but a transaction has a sender. If a member sends the
+vote from a wallet that is linked to them, the sender gives away what the proof hides. A relayer
+sends the transaction instead, so the sender on chain is the relayer.
+
+| Part    | What it is                                                                                                                                           |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rule    | [`packages/zk/src/relay.ts`](../packages/zk/src/relay.ts): what is relayed and what is refused                                                       |
+| Service | [`functions/api/zk/relay.js`](../functions/api/zk/relay.js): `GET /api/zk/relay` says whether it is on and for which polls; `POST` relays one signal |
+| App     | The Private screen sends a vote through the relayer when the relayer serves that poll, and from the connected wallet otherwise; the page says which  |
+
+It is the one ARL service that holds a key, and the key pays gas and nothing else. It cannot
+vote or change a vote: the proof binds the group, the poll, the option and the nullifier, and
+the contract checks it. Because it pays, it guards what it pays for:
+
+- it relays only the polls named in its settings (`group:poll`), so what it can spend is one
+  fee per member per served poll, and nobody can open a group or a poll of their own at its cost;
+- it simulates the call first and sends nothing the contract would refuse (a second vote, an
+  unknown root, an invalid proof);
+- it refuses when the network fee is above its ceiling, and a call that needs more gas than a
+  signal of this circuit uses;
+- it answers only the app on the same site.
+
+The key is a secret of the deployment, set by the operator and never in the repository. Without
+the key, the contract address and the list of polls the service is off, and the app sends votes
+from the connected wallet. Like any web service it sees the network address a request comes
+from; it does not store it. A member who does not want to rely on that can vote from a wallet of
+their own that is not linked to them.
+
+Rehearsed on a fork of Base Mainnet with the committed fixture: the relayer sent a real proof
+(about 2.6 million gas), and a repeated vote and a changed message were refused with nothing
+sent.
+
 ## In the app
 
 The app's Private screen runs an anonymous poll with this contract; see [app.md](app.md#private-anonymous-polls).

@@ -183,6 +183,39 @@ function useGroup(group: bigint | undefined) {
   });
 }
 
+/** What `GET /api/zk/relay` answers (functions/api/zk/relay.js). */
+interface RelayStatus {
+  enabled: boolean;
+  signal?: string;
+  polls?: { group: string; poll: string }[];
+}
+
+/**
+ * Whether the ARL relayer sends the votes of this poll. It does only for the polls it is set up
+ * for, on the contract this build uses; anywhere else, and wherever the service does not
+ * answer, the connected wallet sends the vote.
+ */
+function useRelayer(poll: PrivatePoll, demo: boolean): boolean {
+  const { data } = useQuery({
+    queryKey: ["arl-zk-relay"],
+    enabled: !demo,
+    staleTime: 60_000,
+    queryFn: async (): Promise<RelayStatus> => {
+      try {
+        const res = await fetch("/api/zk/relay");
+        return res.ok ? ((await res.json()) as RelayStatus) : { enabled: false };
+      } catch {
+        return { enabled: false };
+      }
+    },
+  });
+  if (!data?.enabled || !SIGNAL) return false;
+  if (data.signal?.toLowerCase() !== SIGNAL.address.toLowerCase()) return false;
+  return (data.polls ?? []).some(
+    (p) => p.group === poll.group.toString() && p.poll === poll.poll.toString(),
+  );
+}
+
 /** The identity of the connected wallet for this chain: a secret kept only in this page. */
 function useIdentity(onError: (text: string) => void) {
   const { targetNetwork } = useTargetNetwork();
@@ -225,6 +258,7 @@ function Poll({ poll, demo }: { poll: PrivatePoll; demo: boolean }) {
     setStatus({ kind: "error", text });
   });
   const [copied, setCopied] = useState(false);
+  const relayed = useRelayer(poll, demo);
 
   const scope = pollScope(poll.group, poll.poll);
   const group = g?.exists ? g : undefined;
@@ -290,6 +324,25 @@ function Poll({ poll, demo }: { poll: PrivatePoll; demo: boolean }) {
       if (demo) {
         setStatus({ kind: "busy", text: "Submitting through the relayer" });
         hash = await localWallet(DEMO_RELAYER).writeContract(call);
+      } else if (relayed) {
+        setStatus({ kind: "busy", text: "Submitting through the ARL relayer" });
+        const res = await fetch("/api/zk/relay", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            groupId: poll.group.toString(),
+            scope: proof.scope.toString(),
+            message: proof.message.toString(),
+            root: proof.root.toString(),
+            nullifier: proof.nullifier.toString(),
+            proof: proof.proof,
+          }),
+        });
+        const answer = (await res.json()) as { transaction?: `0x${string}`; message?: string };
+        if (!res.ok || !answer.transaction) {
+          throw new Error(answer.message ?? "The relayer could not send the vote.");
+        }
+        hash = answer.transaction;
       } else {
         setStatus({ kind: "busy", text: "Confirm the transaction in your wallet" });
         hash = await writeContractAsync(call);
@@ -298,9 +351,10 @@ function Poll({ poll, demo }: { poll: PrivatePoll; demo: boolean }) {
       await refetch();
       setStatus({
         kind: "done",
-        text: demo
-          ? "Your vote was counted. Nothing on-chain links it to your wallet."
-          : "Your vote was counted. The proof does not say which member voted.",
+        text:
+          demo || relayed
+            ? "Your vote was counted. Nothing on-chain links it to your wallet."
+            : "Your vote was counted. The proof does not say which member voted.",
       });
     } catch (e) {
       setStatus({ kind: "error", text: firstLine(e, "Voting failed") });
@@ -393,6 +447,14 @@ function Poll({ poll, demo }: { poll: PrivatePoll; demo: boolean }) {
           <p className="text-sm text-muted">
             One vote per member. The vote is sent by a relayer, so the sender is not your wallet
             either.
+          </p>
+        ) : relayed ? (
+          <p className="text-sm text-muted" data-testid="zk-relayed-note">
+            One vote per member. The question and the options are written in the link you opened;
+            the contract records poll {poll.poll.toString()} of group {poll.group.toString()} and
+            the number of the option. The vote is sent by the ARL relayer, so the sender is not your
+            wallet either. The relayer pays the fee; it cannot change a vote, and the proof tells it
+            nothing about which member voted.
           </p>
         ) : (
           <p className="text-sm text-muted" data-testid="zk-sender-note">

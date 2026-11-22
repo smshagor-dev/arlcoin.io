@@ -6,6 +6,13 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- ZK privacy: a relayer for anonymous signals, so the sender of a vote is not a wallet of the
+  voter. It relays only the polls named in its settings, simulates every call first, keeps to a
+  fee ceiling and answers only the app on the same site
+  ([relay.ts](packages/zk/src/relay.ts), [relay.js](functions/api/zk/relay.js),
+  [zk-privacy.md](docs/zk-privacy.md#the-relayer)). The service is off until its operator sets
+  the key, the contract address and the polls; until then the Private screen sends votes from
+  the connected wallet. Rehearsed on a fork of Base Mainnet.
 - App, Private: the screen works for any group, not only the local demo. A poll is a link that
   carries its group, its number, the question and the options; an admin starts a group from a
   list of commitments, adds members and makes poll links; a member opens the link and votes
