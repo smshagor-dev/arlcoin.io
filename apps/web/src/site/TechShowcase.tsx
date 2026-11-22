@@ -3,13 +3,23 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { pathFor } from "@/content/registry.ts";
+import { getCard, getLayer, pathFor } from "@/content/registry.ts";
+import type { Status } from "@/content/types.ts";
+import { StatusPill } from "@/site/StatusPill.tsx";
 
 // Interface previews of the four technologies, one per slide on a swipeable rail. Every
 // number is an example and nothing touches a network. The previews show
 // how each flow is meant to work, step by step.
 
 const NOTE = "Preview · simulated · example values · no tokens move";
+
+/** The delivery status of the product a preview stands for, from the Core. */
+function productStatus(card: string): Status {
+  const layer = getLayer("technology");
+  const status = layer ? getCard(layer, card)?.status : undefined;
+  if (!status) throw new Error(`technology/${card} has no status`);
+  return status;
+}
 
 const reduced = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -129,7 +139,10 @@ function Shell({
     >
       <div>
         <p className="font-mono text-[11px] tracking-[0.06em] text-accent uppercase">{NOTE}</p>
-        <h3 className="mt-3 text-[28px] leading-[1.15] font-bold">{title}</h3>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <h3 className="text-[28px] leading-[1.15] font-bold">{title}</h3>
+          <StatusPill status={productStatus(card)} />
+        </div>
         <p className="mt-2 text-[16px] leading-[1.5] text-fg-muted">{lead}</p>
       </div>
       <div className="flex flex-1 flex-col gap-5">{children}</div>

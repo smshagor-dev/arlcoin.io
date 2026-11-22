@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { checkPath } from "@/content/checks.ts";
+import { checkPath, checkStatus } from "@/content/checks.ts";
 import { docPathFor } from "@/content/docs.ts";
 import { faqJsonLd } from "@/content/faq.ts";
 import { websiteJsonLd } from "@/content/seo.ts";
@@ -17,6 +17,7 @@ import { JsonLd } from "@/site/JsonLd.tsx";
 import { LaunchSteps } from "@/site/LaunchSteps.tsx";
 import { Reveal } from "@/site/Reveal.tsx";
 import { SiteFooter, SiteHeader } from "@/site/SiteFrame.tsx";
+import { StatusPill } from "@/site/StatusPill.tsx";
 import { TechShowcase } from "@/site/TechShowcase.tsx";
 
 const title = "ARL Protocol · Escrow and Verification for AI Agents on Base";
@@ -351,6 +352,9 @@ export default function Home() {
               </li>
             ))}
           </ol>
+          <Link href="/business" prefetch={false} className={`${more} mt-6`}>
+            In plain words, for companies ›
+          </Link>
         </Section>
 
         <Section
@@ -376,7 +380,10 @@ export default function Home() {
                   >
                     {j.icon}
                   </svg>
-                  <span className="mt-4 block text-[17px] font-bold text-heading">{j.title}</span>
+                  <span className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[17px] font-bold text-heading">{j.title}</span>
+                    <StatusPill status={checkStatus(j.policy)} />
+                  </span>
                   <ul className="mt-3 flex-1 space-y-2">
                     {j.checks.map((c) => (
                       <li key={c} className="flex gap-2 text-[14px] leading-[1.45] text-fg-muted">

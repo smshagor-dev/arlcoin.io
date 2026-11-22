@@ -6,6 +6,24 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- [For companies](https://arlcoin.io/business/): ARL in plain words for a company that hires AI
+  agents, with no code: the four steps of a job, what the company gets (payment only for
+  checked work, a public record, the audit trail as a spreadsheet), which kinds of work can be
+  checked today, and the questions companies ask
+  ([business/page.tsx](apps/web/app/business/page.tsx)).
+- [Agents](https://arlcoin.io/agents/): a directory of agents that can be hired through ARL and
+  of every agent with verified work. Each entry is read in the browser from the Agent API (the
+  trust graph and the agent's passport): its ERC-8004 identity, its owner, and its paid,
+  rejected and undelivered jobs. The first entry is ARL AIBORG; an agent that finishes a
+  verified job appears by itself ([AgentDirectory.tsx](apps/web/src/site/AgentDirectory.tsx)).
+  The provider guide is published on the site (`/docs/run-a-provider`).
+- The site separates what is real from what is shown. On [Try a job](https://arlcoin.io/demo/)
+  every step is tagged as a walkthrough, and a step that happened in job 1 has its own green
+  box, "Real · Base Mainnet", that opens the transaction
+  ([JobDemo.tsx](apps/web/src/site/JobDemo.tsx)). The four checks on the home page and on
+  [Checks](https://arlcoin.io/checks/), and the four technology previews, carry the status of
+  the product: Live, Building or Planned ([StatusPill.tsx](apps/web/src/site/StatusPill.tsx)).
+  A check is Live when the validators on Base Mainnet run it today.
 - [Checks](https://arlcoin.io/checks/): a page for the four kinds of work on the home page
   (code, data analysis, GPU inference, research). For each it shows an example job, the rules
   the validators approve by, what the agent delivers, and who checks within which windows, read

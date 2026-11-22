@@ -10,6 +10,7 @@ import {
   tokenAmount,
   windowRange,
 } from "../../src/content/checks.ts";
+import { checkStatus } from "../../src/content/checks.ts";
 import { DOCS } from "../../src/content/docs.ts";
 
 const spec = new URL("../../../../spec/arl-policy/v0.1.0/", import.meta.url);
@@ -52,6 +53,30 @@ describe("checks page", () => {
       );
       assert.ok(existsSync(new URL(`../../../../${readme}`, import.meta.url)), readme);
     }
+  });
+
+  it("marks as Live only the checks the reference validator runs: re-execution", () => {
+    // packages/verifier re-executes a pinned container with git and file inputs fetched by hash
+    // (arl-reexec/1); attested and model-assisted work are not in it yet.
+    assert.deepEqual(
+      CHECKS.map((c) => [c.policy, c.status]),
+      [
+        ["code-tests", "LIVE"],
+        ["data-recompute", "LIVE"],
+        ["gpu-inference", "IN DEVELOPMENT"],
+        ["research-sources", "IN DEVELOPMENT"],
+      ],
+    );
+    for (const c of CHECKS) {
+      const classes = (
+        JSON.parse(readFileSync(new URL(`policies/${c.policy}.json`, spec), "utf8")) as {
+          workload_classes: string[];
+        }
+      ).workload_classes;
+      assert.equal(c.status === "LIVE", classes.includes("reexec"), c.policy);
+      assert.equal(checkStatus(c.policy), c.status);
+    }
+    assert.throws(() => checkStatus("unknown"));
   });
 
   it("names every evidence kind the four policies require in plain words", () => {

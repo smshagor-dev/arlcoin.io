@@ -7,7 +7,8 @@ import type { Balances, Scenario } from "@/content/demo.ts";
 
 const pill =
   "glass-pill inline-flex min-h-11 items-center rounded-full px-5 text-[14px] font-semibold text-fg";
-const link = "text-accent underline underline-offset-4 [overflow-wrap:anywhere]";
+const tag =
+  "inline-flex items-center gap-2 rounded-full px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.08em] uppercase";
 const ext = { rel: "noopener noreferrer", target: "_blank" } as const;
 
 const PLACES: readonly { key: keyof Balances; label: string }[] = [
@@ -65,9 +66,19 @@ export function JobDemo() {
         aria-labelledby="demo-step"
         aria-live="polite"
       >
-        <p className="font-mono text-[12px] tracking-[0.08em] text-fg-muted uppercase">
-          Step {current + 1} of {steps.length} · {step.actor}
-        </p>
+        {/* Two kinds of thing on this card, never mixed: the walkthrough (dashed, grey) and
+            what really happened on Base Mainnet (solid, green; see .demo-real below). */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={`${tag} border border-dashed border-line text-fg-muted`}
+            data-testid="demo-walkthrough-tag"
+          >
+            Walkthrough · nothing is sent
+          </span>
+          <p className="font-mono text-[12px] tracking-[0.08em] text-fg-muted uppercase">
+            Step {current + 1} of {steps.length} · {step.actor}
+          </p>
+        </div>
         <h2
           id="demo-step"
           className="text-[26px] leading-[1.2] font-bold [overflow-wrap:anywhere]"
@@ -103,15 +114,31 @@ export function JobDemo() {
           <span className="font-semibold text-fg" data-testid="demo-status">
             {step.status}
           </span>
-          {step.job1 && (
-            <>
-              {" · "}
-              <a href={job1Link(step.job1)} {...ext} className={link}>
-                this step in job 1 on Base
-              </a>
-            </>
-          )}
         </p>
+
+        {step.job1 ? (
+          <a
+            href={job1Link(step.job1)}
+            {...ext}
+            className="demo-real flex flex-col gap-2 rounded-[14px] px-4 py-3"
+            data-testid="demo-real"
+          >
+            <span className={`${tag} demo-real-tag self-start`}>
+              <span aria-hidden="true" className="demo-real-dot" />
+              Real · Base Mainnet
+            </span>
+            <span className="text-[14px] leading-[1.5] text-fg">
+              This step happened in job 1. Open its transaction on BaseScan ›
+            </span>
+          </a>
+        ) : (
+          <p
+            className="rounded-[14px] border border-dashed border-line px-4 py-3 text-[14px] leading-[1.5] text-fg-muted"
+            data-testid="demo-only"
+          >
+            Walkthrough only: there is no transaction for this step in job 1 on Base Mainnet.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-3">
           <button

@@ -4,6 +4,8 @@
 // reads both files at build time (src/site/loadChecks.ts), so the site cannot drift from the
 // published format; this module holds only what the files do not say.
 
+import type { Status } from "./types.ts";
+
 export interface CheckIntro {
   /** The policy id: the file name under `templates/` and `policies/`, and the page anchor. */
   readonly policy: string;
@@ -11,6 +13,12 @@ export interface CheckIntro {
   readonly title: string;
   /** How this kind of work is proven, in one sentence. */
   readonly how: string;
+  /**
+   * LIVE: the validators on Base Mainnet run this check today (a re-execution of a pinned
+   * container with inputs fetched by hash, packages/verifier). IN DEVELOPMENT: the rules are
+   * published and the validator software for them is being built.
+   */
+  readonly status: Status;
 }
 
 export const CHECKS: readonly CheckIntro[] = [
@@ -18,25 +26,36 @@ export const CHECKS: readonly CheckIntro[] = [
     policy: "code-tests",
     title: "Code",
     how: "Validators run the same test command on the delivered commit, in the same container, and compare the result.",
+    status: "LIVE",
   },
   {
     policy: "data-recompute",
     title: "Data analysis",
     how: "Validators fetch the same inputs by their hashes, recompute the analysis and compare every output.",
+    status: "LIVE",
   },
   {
     policy: "gpu-inference",
     title: "GPU inference",
     how: "The provider signs what ran on which hardware, and validators re-run a sample of the batch.",
+    status: "IN DEVELOPMENT",
   },
   {
     policy: "research-sources",
     title: "Research",
     how: "Validators open every cited source and check that it says what the report claims.",
+    status: "IN DEVELOPMENT",
   },
 ];
 
 export const checkPath = (policy: string): `/${string}` => `/checks#${policy}`;
+
+/** The status of a check by its policy id; throws at build time on an unknown one. */
+export function checkStatus(policy: string): Status {
+  const check = CHECKS.find((c) => c.policy === policy);
+  if (!check) throw new Error(`${policy} is not one of the checks`);
+  return check.status;
+}
 
 /** Plain words for the evidence kinds a policy requires. */
 const EVIDENCE: Readonly<Record<string, string>> = {

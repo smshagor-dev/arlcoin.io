@@ -1450,3 +1450,61 @@ html.lenis body {
     animation: none;
   }
 }
+
+/* The job walkthrough (/demo): the one box that is not a walkthrough. A step that really
+   happened on Base Mainnet is framed in solid green, apart from the dashed grey of the rest. */
+.demo-real {
+  border: 1.5px solid #85bb65;
+  background: rgb(133 187 101 / 0.08);
+  transition: background 150ms ease;
+}
+.demo-real:hover {
+  background: rgb(133 187 101 / 0.14);
+}
+.demo-real-tag {
+  border: 1px solid #85bb65;
+  color: #a9d68c;
+}
+.demo-real-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #85bb65;
+  box-shadow: 0 0 8px rgb(133 187 101 / 0.9);
+}
+
+/* Delivery status of a product (src/site/StatusPill.tsx): Live, Building or Planned. */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-line);
+  padding: 2px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-fg-muted);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+.status-pill[data-status="live"] {
+  border-color: #85bb65;
+  color: #a9d68c;
+}
+.status-pill[data-status="live"] .status-dot {
+  background: #85bb65;
+  box-shadow: 0 0 8px rgb(133 187 101 / 0.9);
+}
+.status-pill[data-status="building"] {
+  border-color: rgb(217 183 122 / 0.6);
+  color: #e3c58f;
+}

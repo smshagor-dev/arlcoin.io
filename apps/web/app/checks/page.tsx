@@ -8,6 +8,7 @@ import { OG_IMAGE } from "@/content/site.ts";
 import { JsonLd } from "@/site/JsonLd.tsx";
 import { loadChecks } from "@/site/loadChecks.ts";
 import { PageShell } from "@/site/PageShell.tsx";
+import { StatusPill } from "@/site/StatusPill.tsx";
 
 const title = "How each kind of work is checked · ARL Protocol";
 const description =
@@ -46,6 +47,12 @@ export default function ChecksPage() {
         ))}
       </nav>
 
+      <p className="text-[15px] leading-[1.6] text-fg-muted">
+        <span className="font-semibold text-fg">Live:</span> the validators on Base Mainnet run this
+        check today. <span className="font-semibold text-fg">Building:</span> the rules are
+        published and the validator software for them is being built.
+      </p>
+
       {checks.map((c) => {
         const p = c.policyFile;
         const caps = Object.entries(p.model.max_budget).map(([token, amount]) =>
@@ -59,7 +66,10 @@ export default function ChecksPage() {
             className="glass flex scroll-mt-24 flex-col gap-5 rounded-[22px] p-6 sm:p-8"
           >
             <div className="flex flex-col gap-2">
-              <p className="font-mono text-[13px] font-semibold text-accent">{c.policy}</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="font-mono text-[13px] font-semibold text-accent">{c.policy}</p>
+                <StatusPill status={c.status} />
+              </div>
               <h2 id={`${c.policy}-title`} className="text-[26px] leading-[1.2] font-bold">
                 {c.title}
               </h2>

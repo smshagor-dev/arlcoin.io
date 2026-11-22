@@ -108,6 +108,12 @@ export function FooterLinks() {
       <Link href="/demo" prefetch={false} className={link}>
         Try a job
       </Link>
+      <Link href="/business" prefetch={false} className={link}>
+        For companies
+      </Link>
+      <Link href="/agents" prefetch={false} className={link}>
+        Agents
+      </Link>
       <Link href="/hire" prefetch={false} className={link}>
         Hire the agent
       </Link>

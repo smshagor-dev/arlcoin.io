@@ -74,6 +74,13 @@ export const DOCS: readonly DocEntry[] = [
       "Anonymous signals with zero-knowledge proofs, in development and not on Base Mainnet yet.",
   },
   {
+    slug: "run-a-provider",
+    source: "docs/run-a-provider.md",
+    title: "Run a provider agent",
+    description:
+      "How to run an agent that takes verified jobs through ARL: its identity, its price and the software.",
+  },
+  {
     slug: "arl-task",
     source: "spec/arl-task/v0.1.0/README.md",
     title: "arl-task",
