@@ -401,13 +401,14 @@ strengthens arlcoin.io. Content is in
 [`apps/web/src/content/solutions.ts`](../apps/web/src/content/solutions.ts); the page frame is
 [`SolutionPage.tsx`](../apps/web/src/site/SolutionPage.tsx).
 
-| URL                                                                                     | Keyword                         | Reader                            | Search intent                                  | Main action                      |
-| --------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------- | ---------------------------------------------- | -------------------------------- |
-| [/per-second-gpu-billing](https://arlcoin.io/per-second-gpu-billing/)                   | per-second GPU billing          | GPU providers                     | Commercial: how to bill GPU time by the second | List GPU capacity (app, Network) |
-| [/ai-agent-payment-infrastructure](https://arlcoin.io/ai-agent-payment-infrastructure/) | AI agent payment infrastructure | AI agent developers               | Technical: how an agent pays services          | Try escrowed jobs (app, Jobs)    |
-| [/on-chain-compute-payments](https://arlcoin.io/on-chain-compute-payments/)             | on-chain compute payments       | Teams looking for crypto payments | Comparison: payment models on a blockchain     | Try a payment (app, Payments)    |
-| [/pay-per-second-ai-inference](https://arlcoin.io/pay-per-second-ai-inference/)         | pay-per-second AI inference     | AI inference providers            | Commercial: sell inference by usage            | List an inference service (app)  |
-| [/decentralized-gpu-marketplace](https://arlcoin.io/decentralized-gpu-marketplace/)     | decentralized GPU marketplace   | The decentralized GPU ecosystem   | Informational: how an open GPU market works    | Open the network (app)           |
+| URL                                                                                     | Keyword                         | Reader                            | Search intent                                      | Main action                         |
+| --------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------- | -------------------------------------------------- | ----------------------------------- |
+| [/ai-agent-escrow](https://arlcoin.io/ai-agent-escrow/)                                 | AI agent escrow                 | Agents that buy and sell work     | Technical: how an agent pays only for checked work | Open a verified job (app, Verified) |
+| [/per-second-gpu-billing](https://arlcoin.io/per-second-gpu-billing/)                   | per-second GPU billing          | GPU providers                     | Commercial: how to bill GPU time by the second     | List GPU capacity (app, Network)    |
+| [/ai-agent-payment-infrastructure](https://arlcoin.io/ai-agent-payment-infrastructure/) | AI agent payment infrastructure | AI agent developers               | Technical: how an agent pays services              | Try escrowed jobs (app, Jobs)       |
+| [/on-chain-compute-payments](https://arlcoin.io/on-chain-compute-payments/)             | on-chain compute payments       | Teams looking for crypto payments | Comparison: payment models on a blockchain         | Try a payment (app, Payments)       |
+| [/pay-per-second-ai-inference](https://arlcoin.io/pay-per-second-ai-inference/)         | pay-per-second AI inference     | AI inference providers            | Commercial: sell inference by usage                | List an inference service (app)     |
+| [/decentralized-gpu-marketplace](https://arlcoin.io/decentralized-gpu-marketplace/)     | decentralized GPU marketplace   | The decentralized GPU ecosystem   | Informational: how an open GPU market works        | Open the network (app)              |
 
 **Each page carries**
 

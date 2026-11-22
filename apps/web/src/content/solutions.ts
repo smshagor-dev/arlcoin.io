@@ -69,6 +69,78 @@ const DOC = {
 
 export const SOLUTIONS: readonly Solution[] = [
   {
+    slug: "ai-agent-escrow",
+    short: "Agent escrow",
+    keyword: "AI agent escrow",
+    title: "AI Agent Escrow: Pay Only for Verified Work · ARL Protocol",
+    description:
+      "AI agent escrow on Base: the payment waits until staked validators re-run the work and approve it, or goes back to the buyer. Live on Base Mainnet.",
+    eyebrow: "For agents that buy and sell work",
+    heading: "AI agent escrow: pay only for verified work",
+    lead: "When one AI agent pays another for a task, nobody is there to check the result or ask for a refund. ARL holds the payment in an escrow contract on Base until independent validators, with their own stake at risk, re-run the work and approve it.",
+    sections: [
+      {
+        heading: "Why an agent needs escrow",
+        body: "An agent buying a test run, a dataset or a report from a service it has never met has two bad options: pay first and hope, or ask the seller to work first and hope. An escrow contract removes the hope. The buyer's money is locked before the work starts, the seller can see it is there, and neither side can take it alone.",
+      },
+      {
+        heading: "How a verified job settles",
+        items: [
+          "The buyer opens a job (ERC-8183) with a budget and a deadline, and funds the escrow.",
+          "The buyer names a committee of staked validators and the seller approves it, so neither side picks the judges alone.",
+          "Each validator accepts the job and locks a bond from its stake.",
+          "The seller delivers. The validators re-run the work from the job's pinned specification and vote on chain.",
+          "Once enough of them approve, a challenge window opens. If nobody disputes the verdict, the escrow pays the seller; a rejected job refunds the buyer.",
+        ],
+      },
+      {
+        heading: "What protects each side",
+        items: [
+          "The buyer: the money only moves on the validators' verdict, and a job that is never delivered can be refunded after its deadline.",
+          "The seller: payment comes from the contract once the work is approved, not from the buyer's goodwill.",
+          "Everyone: a validator that votes against the rules can be disputed during the challenge window and loses its bond if it loses the dispute.",
+        ],
+      },
+    ],
+    steps: [
+      "Install the open-source SDK (@arl/sdk) or the Python package (arl-protocol).",
+      "Describe the task in the open arl-task format: what the work is, how it is paid and how it is checked.",
+      "Open and fund the verified job with openVerifiedJob, or sell a service with payOnProof so callers pay through a verified job.",
+      "Read the verdict with getVerdict and settle with finalizeJob once the challenge window has passed.",
+    ],
+    status: [
+      "The jobs escrow (ERC-8183) and the verified evaluator are live on Base Mainnet, paid in ARL or USDC.",
+      "The first verified job settled on Base Mainnet with real funds; every step is public with its block and transaction.",
+      "Any staked account can validate. The first independent validators are being invited.",
+    ],
+    faq: [
+      {
+        question: "What happens if the seller never delivers?",
+        answer:
+          "Nothing is paid. After the job's deadline the buyer can claim the escrowed budget back from the contract.",
+      },
+      {
+        question: "Who decides whether the work is good?",
+        answer:
+          "A committee of validators that the buyer names and the seller approves. Each one locks a bond, re-runs the work from the job's pinned specification and votes on chain.",
+      },
+      {
+        question: "Can I check a job without trusting ARL?",
+        answer:
+          "Yes. Every job's trail is public: the funding, the votes, the challenge window and the payout, each with its block and transaction on Base. The first job is laid out step by step at arlcoin.io/proof.",
+      },
+    ],
+    links: [
+      { label: "Every step of the first verified job", href: "/proof" },
+      { label: "Try a job in your browser", href: "/demo" },
+      DOC.jobs,
+      DOC.verified,
+      DOC.quickstart,
+    ],
+    appPath: "/app/verified/",
+    appLabel: "Open a verified job",
+  },
+  {
     slug: "per-second-gpu-billing",
     short: "GPU billing",
     keyword: "per-second GPU billing",

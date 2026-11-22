@@ -6,6 +6,7 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- Site: a landing page for the search term "AI agent escrow" ([/ai-agent-escrow](https://arlcoin.io/ai-agent-escrow/)): why an agent needs escrow, how a verified job settles, what protects each side, and where it runs on Base Mainnet, with the same structured data as the other use-case pages.
 - Search, automated: an end-to-end test checks every page in the sitemap for a title of 25 to 60
   characters, a description of 70 to 160, both unique, a canonical link to itself, Open Graph and
   Twitter tags, one h1, alt text on every image and structured data, so a change that breaks them
