@@ -6,6 +6,7 @@
 // - ARLJobs (the ARL escrow, v3): contracts/deploy/base-mainnet-jobs.json, with the ABI of the
 //   current source, which is the version deployed there
 // - ARLStakingRewards: contracts/deploy/base-mainnet-services.json
+// - ARLAnonymousSignal: contracts/deploy/base-mainnet-signal.json
 //
 //   node scripts/generate-mainnet-contracts.ts [--check]
 //
@@ -32,7 +33,10 @@ const jobs = read<{ chainId: number; arl: { jobs: string } }>(
 const services = read<{ chainId: number; staking: string }>(
   join(contractsDir, "deploy", "base-mainnet-services.json"),
 );
-for (const r of [token, jobs, services]) {
+const signal = read<{ chainId: number; signal: string }>(
+  join(contractsDir, "deploy", "base-mainnet-signal.json"),
+);
+for (const r of [token, jobs, services, signal]) {
   if (r.chainId !== 8_453) throw new Error("a Base Mainnet record names another chain");
 }
 
@@ -44,6 +48,7 @@ const CONTRACTS = {
   // ARLJobs v3 (16 November 2026); 53_315_381 was the retired v2 escrow and made every job read
   // scan 6 million extra blocks.
   ARLJobs: { address: jobs.arl.jobs, deployedOnBlock: 58_067_169 },
+  ARLAnonymousSignal: { address: signal.signal, deployedOnBlock: 60_749_975 },
 } as const;
 
 // Contracts whose deployed version is older than the current source keep that version's ABI.

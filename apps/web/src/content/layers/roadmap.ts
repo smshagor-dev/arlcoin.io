@@ -131,6 +131,22 @@ export const roadmap: Layer = {
       ],
     },
     {
+      id: "private-polls",
+      title: "Private Polls",
+      shortDescription: "Anonymous votes with zero-knowledge proofs",
+      progress: "done",
+      weight: "tertiary",
+      metric: { kind: "static", value: "Deployed 2026-11-22" },
+      detail: {
+        summary:
+          "The anonymous signals contract and its zero-knowledge verifier were deployed on Base Mainnet on 22 November 2026. A member of a group votes once per poll, and nothing on chain says which member voted: the browser proves membership and the contract checks the proof. The deployed verifier was checked on chain with a real proof before the record was written.",
+      },
+      links: [
+        { label: "Private polls in the app", href: "https://arlcoin.io/app/private/" },
+        { label: "How it works", href: "/docs/zk-privacy" },
+      ],
+    },
+    {
       id: "first-services",
       title: "First Paid Services",
       shortDescription: "Pay-on-proof for services outside the team",

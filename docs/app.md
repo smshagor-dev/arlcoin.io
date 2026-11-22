@@ -38,9 +38,9 @@ On Base Mainnet the app shows Wallet, Vesting, Trade, Claim, Staking, Jobs, Veri
   the result's canonical JSON. The first job's spec and script are in
   `apps/web/public/jobs/first-verified-job/` (served at arlcoin.io/jobs/first-verified-job/).
 
-Payments, Network and Private run on the local chain only. In the Base Mainnet build they show
-"Not live on Base Mainnet yet": the per-use x402 payments facilitator, the provider marketplace and
-anonymous polls are not on Base Mainnet yet.
+Payments and Network run on the local chain only. In the Base Mainnet build they show
+"Not live on Base Mainnet yet": the per-use x402 payments facilitator and the provider marketplace
+are not on Base Mainnet yet. Private runs on Base Mainnet (below).
 
 Design: Apple-style "liquid glass" in the website's night blue and amber. A fixed layer of soft
 light sits behind the content; panels, tiles, the top bar and menus are translucent glass over it
@@ -81,7 +81,7 @@ service is account 3. Neither has a key in the app.
 
 ## Private (anonymous polls)
 
-The Private screen uses [`ARLAnonymousSignal`](zk-privacy.md) and runs on the local chain only. The wallet signs a fixed message;
+The Private screen uses [`ARLAnonymousSignal`](zk-privacy.md), on Base Mainnet since 22 November 2026 and on the local chain. The wallet signs a fixed message;
 the identity secret is derived from that signature in the page, kept only in memory, and never
 sent. Joining publishes the identity's commitment (`MembersAdded`) and the new group root. The
 screen rebuilds the member tree from those events and refuses to vote unless it matches the root

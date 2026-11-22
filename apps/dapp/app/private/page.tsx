@@ -33,8 +33,8 @@ import {
 } from "~~/lib/privatePoll";
 
 // The anonymous signals contract of the chain this build targets. Its interface is the same on
-// every chain; the address and the deployment block come from the chain's record. Until the
-// contract is recorded for Base Mainnet the screen says so.
+// every chain; the address and the deployment block come from the chain's record. A build for
+// a chain without that record says the screen is not live there.
 const ABI = localContracts[31337].ARLAnonymousSignal.abi;
 const recorded = (
   ARL as unknown as Record<string, { address: `0x${string}`; deployedOnBlock?: number } | undefined>

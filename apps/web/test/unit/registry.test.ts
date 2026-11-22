@@ -164,6 +164,7 @@ describe("content accuracy", () => {
       "token/network",
       "technology/verified-jobs",
       "technology/agent-tools",
+      "technology/zk-privacy",
       "technology/defi",
       "technology/token-contracts",
       "security/fixed-supply",

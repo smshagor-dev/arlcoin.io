@@ -1,7 +1,20 @@
 # ZK Privacy: anonymous signals
 
-Status: **IN DEVELOPMENT.** Runs on the local Anvil chain only; not on Base Mainnet yet. The
-app's Private screen shows "Not live on Base Mainnet yet" in the Base Mainnet build.
+Status: **LIVE on Base Mainnet** since 22 November 2026. The app's
+[Private screen](https://arlcoin.io/app/private/) runs polls on it.
+
+| Contract             | Address on Base Mainnet                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `ARLAnonymousSignal` | [`0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4`](https://basescan.org/address/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4) |
+| Verifier             | [`0xcC7d37b1Cf9eFd560b6F594F3C4eDB03bEFB6F53`](https://basescan.org/address/0xcC7d37b1Cf9eFd560b6F594F3C4eDB03bEFB6F53) |
+| `RelationsLib`       | [`0xA7c9Dcd8dad85022f3F3ddA21a470C9c7765F368`](https://basescan.org/address/0xA7c9Dcd8dad85022f3F3ddA21a470C9c7765F368) |
+| `ZKTranscriptLib`    | [`0xb3d028c39A88bBFbB56973FBB44638345749E96b`](https://basescan.org/address/0xb3d028c39A88bBFbB56973FBB44638345749E96b) |
+
+The record is [`contracts/deploy/base-mainnet-signal.json`](../contracts/deploy/base-mainnet-signal.json).
+It was written only after the deployed verifier accepted a real proof and refused the same proof
+with another message. The source of all four is verified on
+[Sourcify](https://repo.sourcify.dev/8453/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4) (full
+match).
 
 Members of a group can **signal** (vote in a poll, attest, give feedback) without revealing which
 member they are, and each member signals **once per scope**. This follows the Semaphore protocol.
@@ -67,6 +80,10 @@ follows from its code alone and is the same on every chain. The Deploy screen th
 address, with the same code as the build, so the plan creates `RelationsLib` only. The whole
 plan was rehearsed on a fork of Base Mainnet: three transactions, about 6.5 million gas, and the
 deployed verifier accepted a real proof.
+
+The plan was signed on 22 November 2026 from the deployer's nonces 53 to 55 (blocks 60,748,351,
+60,748,732 and 60,749,975). Every contract was created at the address the rehearsal gave, and
+`signal-record-cli.ts` passed all nine checks on Base Mainnet.
 
 ## The relayer
 

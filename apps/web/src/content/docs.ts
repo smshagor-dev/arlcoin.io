@@ -71,7 +71,7 @@ export const DOCS: readonly DocEntry[] = [
     source: "docs/zk-privacy.md",
     title: "ZK privacy",
     description:
-      "Anonymous signals with zero-knowledge proofs, in development and not on Base Mainnet yet.",
+      "Anonymous signals with zero-knowledge proofs: private polls on Base Mainnet, how they work and where they are deployed.",
   },
   {
     slug: "run-a-provider",

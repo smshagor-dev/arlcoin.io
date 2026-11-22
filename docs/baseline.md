@@ -36,7 +36,7 @@ On-chain reads: Base Mainnet (8453), block 57,249,534 (2026-11-14 07:11 UTC), pu
 | x402 `upto` payments with usage receipts                       | BUILDING   | `packages/payments`; does not open 8453; no facilitator runs                                                                                      |
 | x402 `arl-escrow` scheme                                       | PLANNED    | `spec/x402-arl-escrow/v0.2.0-draft` (draft for review)                                                                                            |
 | `ARLX402JobGateway`, `IExecutionVerifier`                      | PLANNED    | Interfaces in [verifiable-execution.md](verifiable-execution.md); no source                                                                       |
-| Anonymous signals                                              | BUILDING   | Local chain only ([zk-privacy.md](zk-privacy.md))                                                                                                 |
+| Anonymous signals                                              | LIVE       | On Base Mainnet since 2026-11-22 ([zk-privacy.md](zk-privacy.md))                                                                                 |
 | Auditor confirmation of the 2026-10-28 fixes                   | UNVERIFIED | Fixes merged (#105); no confirmation from the auditor in the repository                                                                           |
 
 ## Deployed code vs repository code

@@ -6,8 +6,9 @@ rewards contract are implemented and tested. The ARL token, its 12 Safes, both v
 and the treasury timelock are deployed on Base Mainnet (2026-10-24, token
 `0xde91E6f39D50bBd875f831dcc1134A3D7f3aaDb4`, see [mainnet-plan.md](mainnet-plan.md) and
 [`README.md`](../README.md)). The verified jobs escrows and evaluators, `ComputePayment` and
-`ARLStakingRewards` are also on Base Mainnet. The x402 payments facilitator, the provider
-marketplace and anonymous signals are not on Base Mainnet yet.
+`ARLStakingRewards` are also on Base Mainnet, and so are the anonymous signals
+(`ARLAnonymousSignal`, 2026-11-22, see [zk-privacy.md](zk-privacy.md)). The x402 payments
+facilitator and the provider marketplace are not on Base Mainnet yet.
 
 ## Repository
 

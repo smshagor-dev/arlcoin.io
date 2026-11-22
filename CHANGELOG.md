@@ -6,6 +6,16 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- ZK privacy is on Base Mainnet. `ARLAnonymousSignal`
+  ([`0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4`](https://basescan.org/address/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4))
+  and its zero-knowledge verifier
+  ([`0xcC7d37b1Cf9eFd560b6F594F3C4eDB03bEFB6F53`](https://basescan.org/address/0xcC7d37b1Cf9eFd560b6F594F3C4eDB03bEFB6F53))
+  were deployed from plan `8453-signal`, and the record
+  ([base-mainnet-signal.json](contracts/deploy/base-mainnet-signal.json)) was written after the
+  deployed verifier accepted a real proof and refused the same proof with another message. The
+  app's [Private screen](https://arlcoin.io/app/private/) opens on Base Mainnet: an admin starts
+  a group and shares a poll as a link, and each member votes once without revealing which member
+  they are ([zk-privacy.md](docs/zk-privacy.md), [mainnet-services.md](docs/mainnet-services.md)).
 - A simulation of verified jobs against the contracts deployed on Base Mainnet, on a local fork
   ([simulate-verified-jobs.mjs](scripts/simulate-verified-jobs.mjs), `npm run simulate:fork`).
   It first settles the jobs that are open on Base the way they stand, then runs six jobs of its

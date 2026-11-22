@@ -1,0 +1,13 @@
+{
+  "network": "base-mainnet",
+  "chainId": 8453,
+  "signal": "0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4",
+  "verifier": "0xcC7d37b1Cf9eFd560b6F594F3C4eDB03bEFB6F53",
+  "libraries": {
+    "RelationsLib": "0xA7c9Dcd8dad85022f3F3ddA21a470C9c7765F368",
+    "ZKTranscriptLib": "0xb3d028c39A88bBFbB56973FBB44638345749E96b"
+  },
+  "groupCount": 0,
+  "block": "60750761",
+  "note": "Verified on chain with packages/deploy/src/signal-record-cli.ts from plan 8453-signal (deployer nonces 53 to 55, 2026-11-22): the deployed verifier accepted a real proof and refused the same proof with another message."
+}

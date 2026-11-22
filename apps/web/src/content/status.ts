@@ -15,6 +15,7 @@ export const STATUS_CONTRACTS = [
   { name: "Verified evaluator (ARL)", address: "0x0D160C869bd2a7AaEDd29e11fc60fdAEf21c3E28" },
   { name: "Verified evaluator (USDC)", address: "0x7A00D45598Da7C13feEA8962fc1110FC4Db4D850" },
   { name: "Compute payment", address: "0x1bFE932896fdd32175836a7364dcaf53d49EE464" },
+  { name: "Anonymous signals", address: "0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4" },
 ] as const;
 
 export interface ValidatorLine {

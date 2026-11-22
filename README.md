@@ -52,6 +52,7 @@ services).
 | Verified evaluator v7, USDC      | [`0x7A00D45598Da7C13feEA8962fc1110FC4Db4D850`](https://basescan.org/address/0x7A00D45598Da7C13feEA8962fc1110FC4Db4D850)        | 2026-11-19 |
 | Compute payment                  | [`0x1bFE932896fdd32175836a7364dcaf53d49EE464`](https://basescan.org/address/0x1bFE932896fdd32175836a7364dcaf53d49EE464)        | 2026-11-12 |
 | Staking rewards (180-day period) | [`0x15e257009BE9B1875fbfa69D291320aaFE3fa102`](https://basescan.org/address/0x15e257009BE9B1875fbfa69D291320aaFE3fa102)        | 2026-11-12 |
+| Anonymous signals (ZK polls)     | [`0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4`](https://basescan.org/address/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4)        | 2026-11-22 |
 
 Reproduce: `npm run check:bytecode` proves a clean build matches
 [`contracts/deploy/bytecode.json`](contracts/deploy/bytecode.json);

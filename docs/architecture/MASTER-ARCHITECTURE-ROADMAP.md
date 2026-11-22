@@ -87,7 +87,7 @@ reads made during this session.
 | `ARLVerifiedEvaluator` | Staked committee votes, challenge window, disputes, arbiter, ERC-8004 write | LIVE v7 `0x0D16…3E28` ARL, `0x7A00…D850` USDC (since 2026-11-19)  | `docs/mainnet-services.md` nonces 40, 41                |
 | `ComputePayment`       | Per-second compute streams paid in ARL                                      | LIVE `0x1bFE…E464`                                                | nonce 31, 10/10 checks                                  |
 | `ARLStakingRewards`    | ARL staking with reward periods                                             | LIVE `0x15e2…a102`, first period of 300,000 ARL funded 2026-11-16 | nonce 32; `docs/mainnet-services.md` step 4             |
-| `ARLAnonymousSignal`   | Semaphore-style anonymous signals (Noir/UltraHonk)                          | BUILDING: local chain only                                        | `docs/zk-privacy.md`                                    |
+| `ARLAnonymousSignal`   | Semaphore-style anonymous signals (Noir/UltraHonk)                          | LIVE on Base Mainnet (2026-11-22)                                 | `docs/zk-privacy.md`                                    |
 | `ARLMerkleDistributor` | Merkle claims                                                               | BUILDING: not deployed at TGE                                     | `docs/architecture.md`                                  |
 | `ARLAllocation`        | Allocation helper                                                           | UNVERIFIED (role in production not documented in the files read)  | —                                                       |
 | `ARLX402JobGateway`    | One x402 signature opens and funds a verified job                           | PLANNED (interface in `docs/verifiable-execution.md`, no source)  | design only                                             |
@@ -130,7 +130,7 @@ deployed but **has not been exercised on mainnet**.
 | Permit2, EIP-3009                | Signature-based token transfers         | BUILDING (payments package)                                       |
 | Safe v1.5.0                      | Arbiter, allocation custody             | LIVE                                                              |
 | Uniswap v3                       | ARL liquidity (USDC, USDT, WETH, cbBTC) | LIVE                                                              |
-| Noir / UltraHonk, Semaphore      | Anonymous signals, future proofs        | BUILDING (local only)                                             |
+| Noir / UltraHonk, Semaphore      | Anonymous signals, future proofs        | LIVE on Base Mainnet (2026-11-22)                                 |
 | AP2 (agent payments protocol)    | Mandate-based agent payments            | PLANNED: not referenced anywhere in the repository                |
 | PACT                             | Named in the brief as proof of delivery | UNVERIFIED: no definition in the repository (see decision D-3)    |
 | NVIDIA Nemotron open models      | Off-chain checking and triage           | PLANNED: not referenced in the repository                         |

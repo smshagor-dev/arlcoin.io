@@ -120,28 +120,31 @@ export const technology: Layer = {
       id: "zk-privacy",
       title: "ZK Privacy",
       shortDescription: "Verify without revealing inputs",
-      status: "IN DEVELOPMENT",
+      status: "LIVE",
       weight: "secondary",
       detail: {
         summary:
           "Zero-knowledge proofs let a member prove something about themselves without revealing who they are. The first use is anonymous polls: one vote per member, with no link between a vote and a wallet.",
         sections: [
           {
-            heading: "Built",
+            heading: "Live on Base Mainnet",
             items: [
-              "Anonymous polls on the Semaphore protocol, with proofs written in Noir (UltraHonk) and generated in the browser. A relayer submits votes so the voter's wallet never appears. Tested end to end",
+              "Anonymous polls on the Semaphore protocol, with proofs written in Noir (UltraHonk) and generated in the browser. The contract and its verifier were deployed on 22 November 2026, and the deployed verifier was checked on chain with a real proof",
+              "The app's Private screen: an admin starts a group and shares a poll as a link, and each member votes once",
             ],
           },
           {
             heading: "Not yet built",
             items: [
               "Private payments and verifiable computation are research topics; no circuits exist for them",
-              "The poll contracts are not deployed on Base Mainnet",
             ],
           },
         ],
       },
-      links: [{ label: "ZK design", href: repoDoc("docs/zk-privacy.md") }],
+      links: [
+        { label: "Private polls in the app", href: "https://arlcoin.io/app/private/" },
+        { label: "How it works", href: "/docs/zk-privacy" },
+      ],
     },
     {
       id: "defi",
@@ -182,14 +185,12 @@ export const technology: Layer = {
           {
             heading: "Built",
             items: [
-              "The ARL app at arlcoin.io/app on Base Mainnet: wallet, trading, vesting, staking, escrowed jobs with ratings on the canonical ERC-8004 registry, and verified jobs",
+              "The ARL app at arlcoin.io/app on Base Mainnet: wallet, trading, vesting, staking, escrowed jobs with ratings on the canonical ERC-8004 registry, verified jobs, and private polls",
             ],
           },
           {
             heading: "Not yet built",
-            items: [
-              "Service registration with per-use payments and anonymous polls are not on Base Mainnet yet",
-            ],
+            items: ["Service registration with per-use payments is not on Base Mainnet yet"],
           },
         ],
       },

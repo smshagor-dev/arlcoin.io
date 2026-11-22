@@ -62,6 +62,9 @@ Deploy screen (`arlcoin.io/app/deploy/?plan=…`):
 |    39 | `8453-verified-evaluator-usdc-v6`         | `ARLVerifiedEvaluator` v6 for the USDC escrow at nonce 35        | `0xc121c4fE9460c55d85dE0175C1C7045235f94c07` | Retired: v7 2026-11-19     |
 |    40 | `8453-verified-evaluator-arl-v7`          | `ARLVerifiedEvaluator` v7 for the ARL escrow at nonce 33         | `0x0D160C869bd2a7AaEDd29e11fc60fdAEf21c3E28` | Deployed 2026-11-19        |
 |    41 | `8453-verified-evaluator-usdc-v7`         | `ARLVerifiedEvaluator` v7 for the USDC escrow at nonce 35        | `0x7A00D45598Da7C13feEA8962fc1110FC4Db4D850` | Deployed 2026-11-19        |
+|    53 | `8453-signal`                             | `RelationsLib`, a library of the zero-knowledge verifier         | `0xA7c9Dcd8dad85022f3F3ddA21a470C9c7765F368` | Deployed 2026-11-22        |
+|    54 | `8453-signal`                             | The zero-knowledge verifier of the anonymous signals             | `0xcC7d37b1Cf9eFd560b6F594F3C4eDB03bEFB6F53` | Deployed 2026-11-22        |
+|    55 | `8453-signal`                             | `ARLAnonymousSignal` with that verifier                          | `0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4` | Deployed 2026-11-22        |
 
 `8453-verified-jobs-usdc` and `8453-verified-jobs-arl` are invalid, do not use: they hold pre-audit
 bytecode (before the audit fixes of 2026-10-28) and the deploy screen refuses them. Their `-v2`

@@ -18,7 +18,7 @@ interface Props {
 }
 
 /** Matches the CSS breakpoints in globals.css. */
-export const DENSE_FROM = 11;
+export const DENSE_FROM = 10;
 const ORBIT_QUERY = "(min-width: 1100px) and (min-height: 760px) and (pointer: fine)";
 const DENSE_ORBIT_QUERY = "(min-width: 1360px) and (min-height: 820px) and (pointer: fine)";
 const PARALLAX_PX = 6;

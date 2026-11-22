@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
-import { IS_LOCAL } from "~~/lib/contracts";
+import { ARL, IS_LOCAL } from "~~/lib/contracts";
 
-// Payments, Network and Private use contracts that are not on Base Mainnet yet: local builds only.
+// Payments and Network use contracts that are not on Base Mainnet yet: local builds only.
+// Private shows wherever the anonymous signals contract is recorded for the chain.
+const HAS_SIGNAL = "ARLAnonymousSignal" in ARL;
 const NAV = [
   { href: "/", label: "Wallet" },
   { href: "/vesting", label: "Vesting" },
@@ -23,7 +25,7 @@ const NAV = [
   { href: "/jobs", label: "Jobs" },
   { href: "/verified", label: "Verified" },
   { href: "/scan", label: "Scan" },
-  ...(IS_LOCAL ? [{ href: "/private", label: "Private" }] : []),
+  ...(HAS_SIGNAL ? [{ href: "/private", label: "Private" }] : []),
 ];
 
 export function Header() {
