@@ -6,6 +6,11 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- Search, automated: an end-to-end test checks every page in the sitemap for a title of 25 to 60
+  characters, a description of 70 to 160, both unique, a canonical link to itself, Open Graph and
+  Twitter tags, one h1, alt text on every image and structured data, so a change that breaks them
+  fails CI ([seo.spec.ts](apps/web/test/e2e/seo.spec.ts)). IndexNow now runs by itself after every
+  website change on main and once a week ([indexnow.yml](.github/workflows/indexnow.yml)).
 - Site: clearer page titles in search results. The Core layers, About, Proof, Agents, Demo, Contact
   and the shortest documents now say what the page holds (for example "Token: Supply, Allocation
   and Contract"); a test keeps every document title between 25 and 60 characters.

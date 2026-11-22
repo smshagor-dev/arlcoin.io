@@ -1,0 +1,44 @@
+name: IndexNow
+
+# Tells IndexNow search engines (Bing, Yandex, Seznam, Naver and others that share it) that
+# arlcoin.io changed, by submitting every URL in the live sitemap (scripts/indexnow.mjs). Runs after
+# each change to the website on main, once Cloudflare Pages has had time to publish it, and once a
+# week. Nothing is signed; the IndexNow key is public by design (apps/web/public/<key>.txt).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: indexnow
+  cancel-in-progress: true
+
+# Actions are pinned to full commit SHAs; the tag is noted for review.
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # Cloudflare Pages builds and publishes main in a few minutes; submit after it is live.
+      - if: github.event_name == 'push'
+        run: sleep 480
+
+      - name: Key file is served
+        run: curl -sfL --max-time 20 --retry 3 --retry-delay 10 https://arlcoin.io/b724c1741fd52e966e7dadc12f4b8050.txt | grep -qx b724c1741fd52e966e7dadc12f4b8050
+
+      - run: node scripts/indexnow.mjs
