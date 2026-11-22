@@ -41,6 +41,33 @@ Slither still analyses `ARLAnonymousSignal`.
 - **Root published by the admin** instead of an on-chain tree: no on-chain Poseidon, and group
   membership rules (for example verified whitelist members) stay with the group's admin.
 
+## Deployment on Base Mainnet
+
+The contracts are deployed like every other ARL contract: a Foundry dry run writes the
+transactions, the app's Deploy screen checks them and the owner signs them one at a time.
+
+| Step   | What                                                                                                                                                                                                                    |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Script | `contracts/zk-script/DeployMainnetSignal.s.sol` (Base Mainnet and the local chain only): the verifier, then `ARLAnonymousSignal` with that verifier                                                                     |
+| Plan   | `apps/dapp/public/plans/8453-signal.json`, opened on the Deploy screen with `?plan=8453-signal`                                                                                                                         |
+| Checks | Before anything is signed the screen compares each transaction with the build, byte for byte (below)                                                                                                                    |
+| Record | `node packages/deploy/src/signal-record-cli.ts <run.json> https://mainnet.base.org contracts/deploy/deployments/8453-signal.json`: written only if the deployed verifier accepts a real proof and refuses a changed one |
+
+The generated verifier calls two libraries, `RelationsLib` and `ZKTranscriptLib`. Forge creates
+libraries through the canonical CREATE2 deployer with the zero salt, so a library's address
+follows from its code alone and is the same on every chain. The Deploy screen therefore accepts:
+
+- a library creation only when it goes to that deployer, uses the zero salt and carries exactly
+  the library code of the build;
+- the verifier only when the two library addresses inside its code are the addresses that
+  follow from that library code, and the rest of its code is the build;
+- `ARLAnonymousSignal` only when its code is the build; its verifier argument is shown.
+
+`ZKTranscriptLib` does not depend on the circuit and already exists on Base Mainnet at its
+address, with the same code as the build, so the plan creates `RelationsLib` only. The whole
+plan was rehearsed on a fork of Base Mainnet: three transactions, about 6.5 million gas, and the
+deployed verifier accepted a real proof.
+
 ## In the app
 
 The app's Private screen runs an anonymous poll with this contract; see [app.md](app.md#private-anonymous-polls).

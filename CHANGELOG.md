@@ -4,6 +4,20 @@ Notable changes to ARL Protocol, newest first. Dates are UTC. Every entry links 
 documents that back it. What is deployed on Base Mainnet is recorded in
 [docs/mainnet-services.md](docs/mainnet-services.md) and `contracts/deploy/`.
 
+## 2026-11-22
+
+- ZK privacy: the Base Mainnet deployment of the anonymous signals is prepared and rehearsed.
+  A deployment script for the verifier and `ARLAnonymousSignal`
+  ([DeployMainnetSignal.s.sol](contracts/zk-script/DeployMainnetSignal.s.sol)), the plan it
+  wrote, and a Deploy screen that reads it: a verifier library is accepted only through the
+  canonical CREATE2 deployer with the zero salt and the exact library code, and the verifier
+  only when it is linked to the two addresses that follow from that code
+  ([deploySteps.ts](apps/dapp/lib/deploySteps.ts)). The record is written only after the
+  deployed verifier accepts a real proof and refuses a changed one
+  ([signal-record-cli.ts](packages/deploy/src/signal-record-cli.ts)). Rehearsed on a fork of
+  Base Mainnet ([zk-privacy.md](docs/zk-privacy.md#deployment-on-base-mainnet)). Nothing is
+  deployed by this change.
+
 ## 2026-11-21
 
 - [Try a job](https://arlcoin.io/demo/): a walkthrough of one verified job in the browser, with

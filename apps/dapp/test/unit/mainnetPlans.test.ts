@@ -4,13 +4,21 @@ import { describe, it, mock } from "node:test";
 
 import { getContractAddress } from "viem";
 
-import { parseRun, recordCommand } from "../../lib/deploySteps.ts";
+import {
+  CREATE2_DEPLOYER,
+  DeployRunError,
+  describeStep,
+  parseRun,
+  recordCommand,
+  zkLibraryAddress,
+} from "../../lib/deploySteps.ts";
 import { TGE_DATE } from "../../lib/network.ts";
 import { EVALUATOR_V4_ARTIFACTS } from "../fixtures/deploy/evaluatorV4Artifacts.ts";
 import { EVALUATOR_V6_ARTIFACTS } from "../fixtures/deploy/evaluatorV6Artifacts.ts";
 import { JOBS_V2_ARTIFACTS } from "../fixtures/deploy/jobsV2Artifacts.ts";
 import { JOBS_V3_ARTIFACTS } from "../fixtures/deploy/jobsV3Artifacts.ts";
 import { RELEASE_ARTIFACTS } from "../fixtures/deploy/releaseArtifacts.ts";
+import { SIGNAL_ARTIFACTS, SIGNAL_ZK_ARTIFACTS } from "../fixtures/deploy/signalArtifacts.ts";
 
 // The Base Mainnet contract run published for TGE day (apps/dapp/public/plans/8453-deploy.json),
 // taken from the mainnet fork rehearsal with the real signers. It must load on the deploy screen
@@ -279,5 +287,151 @@ describe("Base Mainnet plans for the verified jobs", () => {
     const record = recordCommand(run, "x.json");
     assert.equal(record.kind, "services");
     assert.ok(record.command.endsWith("8453-services.json"));
+  });
+});
+
+// The anonymous signals on Base Mainnet (docs/zk-privacy.md): the verifier's RelationsLib through
+// the CREATE2 deployer at nonce 53, the verifier at nonce 54 and the contract at nonce 55.
+// ZKTranscriptLib is already on Base Mainnet at the address that follows from its code, so the
+// run does not create it.
+describe("Base Mainnet plan for the anonymous signals", () => {
+  const RELATIONS = "0xA7c9Dcd8dad85022f3F3ddA21a470C9c7765F368";
+  const TRANSCRIPT = "0xb3d028c39A88bBFbB56973FBB44638345749E96b";
+  const parse = (run: unknown) =>
+    afterTge(() => parseRun(run, SIGNAL_ARTIFACTS, SIGNAL_ZK_ARTIFACTS));
+  interface Tx {
+    transactionType: string;
+    contractName: string;
+    transaction: { to: string | null; input: string };
+  }
+  const changed = (index: number, change: (t: Tx) => void) => {
+    const run = structuredClone(plan("8453-signal")) as { transactions: Tx[] };
+    const tx = run.transactions[index];
+    if (!tx) throw new Error("no such transaction");
+    change(tx);
+    return run;
+  };
+  const refused = (run: unknown, pattern: RegExp) =>
+    assert.throws(
+      () => parse(run),
+      (e: unknown) => e instanceof DeployRunError && pattern.test(e.message),
+    );
+  // Flips one hex digit of the input at `byte`.
+  const flip = (t: Tx, byte: number) => {
+    const at = 2 + byte * 2;
+    const digit = t.transaction.input[at] === "0" ? "1" : "0";
+    t.transaction.input =
+      t.transaction.input.slice(0, at) + digit + t.transaction.input.slice(at + 1);
+  };
+
+  it("creates the library, the verifier linked to both libraries, and the contract", () => {
+    const run = parse(plan("8453-signal"));
+    assert.equal(run.chainId, 8453);
+    assert.equal(run.from.toLowerCase(), "0xe033104ae32fc7e13263b7aed577ab20d6e47eaa");
+    assert.deepEqual(
+      run.steps.map((s) => (s.kind === "create" ? s.contract : s.kind)),
+      ["library", "verifier", "ARLAnonymousSignal"],
+    );
+    const [library, verifier, signal] = run.steps;
+    if (library?.kind !== "library" || verifier?.kind !== "verifier" || signal?.kind !== "create") {
+      assert.fail("unexpected steps");
+    }
+    assert.equal(library.library, "RelationsLib");
+    assert.equal(library.address, RELATIONS);
+    assert.equal(library.nonce, 53);
+    assert.equal(zkLibraryAddress("RelationsLib", SIGNAL_ZK_ARTIFACTS), RELATIONS);
+    assert.equal(zkLibraryAddress("ZKTranscriptLib", SIGNAL_ZK_ARTIFACTS), TRANSCRIPT);
+    assert.deepEqual(verifier.libraries, { ZKTranscriptLib: TRANSCRIPT, RelationsLib: RELATIONS });
+    assert.equal(verifier.address, getContractAddress({ from: run.from, nonce: 54n }));
+    assert.equal(signal.address, getContractAddress({ from: run.from, nonce: 55n }));
+    // The contract is created with exactly the verifier of the step before it.
+    assert.equal(String(signal.args[0]), verifier.address);
+
+    assert.match(describeStep(library).detail, /CREATE2 deployer/);
+    assert.match(describeStep(verifier).detail, /0xb3d0…E96b and 0xA7c9…F368/);
+    assert.match(describeStep(signal).detail, /no owner and holds no tokens/);
+    const record = recordCommand(run, "x.json");
+    assert.equal(record.kind, "signal");
+    assert.ok(record.command.includes("signal-record-cli.ts x.json https://mainnet.base.org "));
+    assert.ok(record.command.endsWith("8453-signal.json"));
+  });
+
+  it("refuses a library that is not the ARL build, salted, or sent elsewhere", () => {
+    refused(
+      changed(0, (t) => flip(t, 32 + 100)),
+      /RelationsLib code is not the ARL build/,
+    );
+    refused(
+      changed(0, (t) => flip(t, 31)),
+      /RelationsLib does not use the zero salt/,
+    );
+    refused(
+      changed(0, (t) => {
+        t.transaction.input += "00";
+      }),
+      /RelationsLib has the wrong length/,
+    );
+    refused(
+      changed(0, (t) => {
+        t.transaction.to = "0x1111111111111111111111111111111111111111";
+      }),
+      /not sent to the CREATE2 deployer/,
+    );
+    refused(
+      changed(0, (t) => {
+        t.contractName = "OtherLib";
+      }),
+      /creates an unknown library/,
+    );
+    assert.equal(CREATE2_DEPLOYER, "0x4e59b44847b379578588920cA78FbF26c0B4956C");
+  });
+
+  it("refuses a verifier linked to another library or with changed code", () => {
+    for (const link of SIGNAL_ZK_ARTIFACTS.HonkVerifier.links) {
+      refused(
+        changed(1, (t) => flip(t, link.start + 5)),
+        new RegExp(`HonkVerifier is linked to another ${link.library}`),
+      );
+    }
+    refused(
+      changed(1, (t) => flip(t, 2000)),
+      /HonkVerifier code is not the ARL build/,
+    );
+    refused(
+      changed(1, (t) => {
+        t.transaction.input += "00";
+      }),
+      /HonkVerifier has the wrong length/,
+    );
+  });
+
+  it("refuses a changed contract, and the same run under another build", () => {
+    refused(
+      changed(2, (t) => flip(t, 1000)),
+      /ARLAnonymousSignal code is not the ARL build/,
+    );
+    const otherBuild = {
+      ...SIGNAL_ZK_ARTIFACTS,
+      HonkVerifier: {
+        ...SIGNAL_ZK_ARTIFACTS.HonkVerifier,
+        blankedCreationHash: `0x${"11".repeat(32)}`,
+      },
+    };
+    assert.throws(
+      () => afterTge(() => parseRun(plan("8453-signal"), SIGNAL_ARTIFACTS, otherBuild)),
+      (e: unknown) =>
+        e instanceof DeployRunError && /HonkVerifier code is not the ARL build/.test(e.message),
+    );
+  });
+
+  it("refuses a run that mixes the anonymous signals with other contracts", () => {
+    const run = parse(plan("8453-signal"));
+    const token = afterTge(() => parseRun(plan("8453-deploy"), RELEASE_ARTIFACTS));
+    const first = token.steps[0];
+    if (!first) assert.fail("no token step");
+    assert.throws(
+      () => recordCommand({ ...run, steps: [...run.steps, first] }, "x.json"),
+      (e: unknown) => e instanceof DeployRunError && /mixes the anonymous signals/.test(e.message),
+    );
   });
 });

@@ -17,6 +17,7 @@ import { base } from "viem/chains";
 
 import { Facts, PageTitle, Stat } from "~~/components/arl/ui";
 import {
+  CREATE2_DEPLOYER,
   checkBeforeSend,
   describeStep,
   parseRun,
@@ -180,14 +181,19 @@ function Signer({ run, source }: { run: DeployRun; source: string }) {
       if (problem) return setMessage(problem);
       const wallet = createWalletClient({ account, chain, transport: custom(provider) });
       const hash = await wallet.sendTransaction({
-        to: step.kind === "safe" ? step.factory : undefined,
+        to:
+          step.kind === "safe"
+            ? step.factory
+            : step.kind === "library"
+              ? CREATE2_DEPLOYER
+              : undefined,
         data: step.data,
         gas: step.gas,
       });
       const receipt = await reader.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error("the transaction reverted");
       if (
-        step.kind === "create" &&
+        (step.kind === "create" || step.kind === "verifier") &&
         receipt.contractAddress?.toLowerCase() !== step.address.toLowerCase()
       ) {
         throw new Error(`created ${String(receipt.contractAddress)}, expected ${step.address}`);
@@ -322,6 +328,8 @@ function Signer({ run, source }: { run: DeployRun; source: string }) {
                 services:
                   "The record lists the compute payment and staking contracts with their checked parameters.",
                 arbiter: "Check that the owners are the three arbiters and the threshold is 2.",
+                signal:
+                  "The record lists the verifier, its libraries and the anonymous signals contract, checked with a real proof.",
               }[recordCommand(run, source).kind]
             }
           </p>

@@ -211,4 +211,46 @@ export const DEPLOY_ARTIFACTS = {
       },
     ],
   },
+  ARLAnonymousSignal: {
+    creationHash: "0x552beb4b43eefeef76858f5c85386259b315464529daf3d0575363387adb2aca",
+    creationSize: 3496,
+    constructorInputs: [
+      {
+        name: "verifier_",
+        type: "address",
+        internalType: "contract IARLSignalVerifier",
+      },
+    ],
+  },
+} as const;
+
+/**
+ * The zero-knowledge verifier and its two libraries (contracts/zk). `blankedCreationHash` is the
+ * hash of the verifier's creation code with the 20 bytes at each link set to zero.
+ */
+export const ZK_DEPLOY_ARTIFACTS = {
+  libraries: {
+    RelationsLib: {
+      creationHash: "0x28e4e6a7af9188a823311ae4beed63ce00ed61f9af37d8664d798112eb524bf8",
+      creationSize: 7971,
+    },
+    ZKTranscriptLib: {
+      creationHash: "0x18b45449679d6926644217496d3bbdd3cf9f018c5dffab74ce194cd3f1dc713c",
+      creationSize: 6150,
+    },
+  },
+  HonkVerifier: {
+    blankedCreationHash: "0x1547bc6e238957ad9f5aa73a28be694786d9ed890d9698f1edeff80c57f9f970",
+    creationSize: 18389,
+    links: [
+      {
+        library: "ZKTranscriptLib",
+        start: 669,
+      },
+      {
+        library: "RelationsLib",
+        start: 3375,
+      },
+    ],
+  },
 } as const;

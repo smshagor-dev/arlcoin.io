@@ -8,7 +8,11 @@
 // - a contract creation whose code is exactly the ARL build (`DEPLOY_ARTIFACTS`), with its
 //   constructor arguments decoded for display;
 // - a Safe creation through the canonical Safe v1.5.0 SafeProxyFactory with a canonical
-//   singleton, with its owners and threshold decoded for display.
+//   singleton, with its owners and threshold decoded for display;
+// - for the zero-knowledge verifier (`ZK_DEPLOY_ARTIFACTS`): one of its two libraries created
+//   through the canonical CREATE2 deployer with the zero salt, so that its address follows from
+//   its code alone, or the verifier itself, whose code must be the ARL build linked to exactly
+//   those two addresses.
 // Anything else is refused. The chain must be Base Mainnet (from the TGE) or the local Anvil chain
 // (`assertAllowedChain`).
 
@@ -26,7 +30,7 @@ import {
   type Hex,
 } from "viem";
 
-import { DEPLOY_ARTIFACTS } from "./deployArtifacts.ts";
+import { DEPLOY_ARTIFACTS, ZK_DEPLOY_ARTIFACTS } from "./deployArtifacts.ts";
 import { LOCAL_CHAIN_ID, assertAllowedChain } from "./network.ts";
 
 /** The creation code a run may contain, per contract. */
@@ -44,6 +48,38 @@ export const SAFE_SINGLETONS_V150: readonly Address[] = [
   "0xFf51A5898e281Db6DfC7855790607438dF2ca44b",
   "0xEdd160fEBBD92E350D4D398fb636302fccd67C7e",
 ];
+
+/** The canonical CREATE2 deployer (Arachnid's deterministic deployment proxy), used by forge
+ * for libraries: `to` it, the data is a 32-byte salt followed by the creation code. */
+export const CREATE2_DEPLOYER: Address = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
+const ZERO_SALT = `0x${"00".repeat(32)}` as const;
+
+export type ZkLibrary = keyof typeof ZK_DEPLOY_ARTIFACTS.libraries;
+
+/** The verifier build a run may contain: the current one, except in tests of earlier runs. */
+export interface ZkArtifacts {
+  readonly libraries: {
+    readonly [L in ZkLibrary]: { readonly creationHash: string; readonly creationSize: number };
+  };
+  readonly HonkVerifier: {
+    readonly blankedCreationHash: string;
+    readonly creationSize: number;
+    readonly links: readonly { readonly library: ZkLibrary; readonly start: number }[];
+  };
+}
+
+/** Where a verifier library lives: fixed by its creation code, on every chain. */
+export function zkLibraryAddress(
+  library: ZkLibrary,
+  zk: ZkArtifacts = ZK_DEPLOY_ARTIFACTS,
+): Address {
+  return getContractAddress({
+    opcode: "CREATE2",
+    from: CREATE2_DEPLOYER,
+    salt: ZERO_SALT,
+    bytecodeHash: zk.libraries[library].creationHash as Hex,
+  });
+}
 
 const factoryAbi = parseAbi([
   "function createProxyWithNonce(address singleton, bytes initializer, uint256 saltNonce) returns (address)",
@@ -64,6 +100,28 @@ export type DeployStep =
       data: Hex;
       gas?: bigint;
       args: readonly unknown[];
+    }
+  | {
+      /** A library of the zero-knowledge verifier, created through the CREATE2 deployer. */
+      kind: "library";
+      index: number;
+      library: ZkLibrary;
+      address: Address;
+      from: Address;
+      nonce: number;
+      data: Hex;
+      gas?: bigint;
+    }
+  | {
+      /** The zero-knowledge verifier, linked to its two libraries. */
+      kind: "verifier";
+      index: number;
+      address: Address;
+      libraries: Record<ZkLibrary, Address>;
+      from: Address;
+      nonce: number;
+      data: Hex;
+      gas?: bigint;
     }
   | {
       kind: "safe";
@@ -120,7 +178,11 @@ interface ForgeTransaction {
 /** Reads and checks a Foundry dry-run file. Throws on anything that is not an ARL deployment.
  * `artifacts` is the build the creations must match: the current one, except in tests that read
  * runs made from an earlier release. */
-export function parseRun(json: unknown, artifacts: DeployArtifacts = DEPLOY_ARTIFACTS): DeployRun {
+export function parseRun(
+  json: unknown,
+  artifacts: DeployArtifacts = DEPLOY_ARTIFACTS,
+  zk: ZkArtifacts = ZK_DEPLOY_ARTIFACTS,
+): DeployRun {
   const run = json as { transactions?: unknown; chain?: unknown };
   if (!Array.isArray(run.transactions) || run.transactions.length === 0) {
     fail("the file has no transactions");
@@ -150,6 +212,73 @@ export function parseRun(json: unknown, artifacts: DeployArtifacts = DEPLOY_ARTI
     if (!isHex(tx.input) || tx.input.length <= 2) fail(`transaction ${String(index + 1)}: no data`);
     const gas = tx.gas === undefined ? undefined : BigInt(hexNumber(tx.gas, "gas"));
     const base = { index, from, nonce, data: tx.input, gas };
+
+    if (t.transactionType === "CREATE2") {
+      if (
+        typeof tx.to !== "string" ||
+        !isAddress(tx.to) ||
+        getAddress(tx.to) !== CREATE2_DEPLOYER
+      ) {
+        fail(`transaction ${String(index + 1)}: not sent to the CREATE2 deployer`);
+      }
+      const name = t.contractName;
+      if (typeof name !== "string" || !Object.hasOwn(zk.libraries, name)) {
+        fail(`transaction ${String(index + 1)}: creates an unknown library`);
+      }
+      const library = name as ZkLibrary;
+      const pinned = zk.libraries[library];
+      if ((tx.input.length - 2) / 2 !== 32 + pinned.creationSize) {
+        fail(`transaction ${String(index + 1)}: ${library} has the wrong length`);
+      }
+      if (slice(tx.input, 0, 32) !== ZERO_SALT) {
+        fail(`transaction ${String(index + 1)}: ${library} does not use the zero salt`);
+      }
+      if (keccak256(slice(tx.input, 32)) !== pinned.creationHash) {
+        fail(`transaction ${String(index + 1)}: ${library} code is not the ARL build`);
+      }
+      const address = zkLibraryAddress(library, zk);
+      if (typeof t.contractAddress === "string" && getAddress(t.contractAddress) !== address) {
+        fail(`transaction ${String(index + 1)}: address does not follow from the library code`);
+      }
+      return { kind: "library", library, address, ...base };
+    }
+
+    if (t.transactionType === "CREATE" && t.contractName === "HonkVerifier") {
+      if (tx.to !== null && tx.to !== undefined)
+        fail(`transaction ${String(index + 1)}: not a creation`);
+      const pinned = zk.HonkVerifier;
+      if ((tx.input.length - 2) / 2 !== pinned.creationSize) {
+        fail(`transaction ${String(index + 1)}: HonkVerifier has the wrong length`);
+      }
+      // The code names its two libraries by address. Each must be the address that follows from
+      // the pinned library code; with those bytes blanked, the rest must be the ARL build.
+      let blanked: string = tx.input;
+      const linked: Partial<Record<ZkLibrary, Address>> = {};
+      for (const link of pinned.links) {
+        const at = 2 + link.start * 2;
+        const address = getAddress(`0x${blanked.slice(at, at + 40)}`);
+        if (address !== zkLibraryAddress(link.library, zk)) {
+          fail(
+            `transaction ${String(index + 1)}: HonkVerifier is linked to another ${link.library}`,
+          );
+        }
+        linked[link.library] = address;
+        blanked = blanked.slice(0, at) + "0".repeat(40) + blanked.slice(at + 40);
+      }
+      if (keccak256(blanked as Hex) !== pinned.blankedCreationHash) {
+        fail(`transaction ${String(index + 1)}: HonkVerifier code is not the ARL build`);
+      }
+      const address = getContractAddress({ from, nonce: BigInt(nonce) });
+      if (typeof t.contractAddress === "string" && getAddress(t.contractAddress) !== address) {
+        fail(`transaction ${String(index + 1)}: address does not follow from sender and nonce`);
+      }
+      return {
+        kind: "verifier",
+        address,
+        libraries: linked as Record<ZkLibrary, Address>,
+        ...base,
+      };
+    }
 
     if (t.transactionType === "CREATE") {
       if (tx.to !== null && tx.to !== undefined)
@@ -238,6 +367,18 @@ export function describeStep(step: DeployStep): { title: string; detail: string 
       detail: `Creates a Safe multisig owned by ${step.owners.map(short).join(", ")}; ${String(step.threshold)} of them must sign each of its transactions. No tokens move and your address gets no role.`,
     };
   }
+  if (step.kind === "library") {
+    return {
+      title: `Create the verifier library ${step.library}`,
+      detail: `Creates ${step.library}, a library of the zero-knowledge verifier, at ${short(step.address)} through the canonical CREATE2 deployer. The address follows from the library code alone. It holds no tokens and nobody controls it.`,
+    };
+  }
+  if (step.kind === "verifier") {
+    return {
+      title: "Create the zero-knowledge verifier",
+      detail: `Creates the verifier of the anonymous-signal proofs (generated by Barretenberg from the ARL circuit), linked to its libraries at ${Object.values(step.libraries).map(short).join(" and ")}. It only checks proofs: it holds no tokens and has no owner.`,
+    };
+  }
   const a = step.args;
   switch (step.contract) {
     case "ARLVestingWallet":
@@ -271,6 +412,11 @@ export function describeStep(step: DeployStep): { title: string; detail: string 
         title: "Create the compute payment contract",
         detail: `Creates the per-second payment streams, paid in the token ${short(String(a[0]))}. A client escrows a stream to a compute provider and either side can stop it. It has no owner and holds no tokens until a stream is opened.`,
       };
+    case "ARLAnonymousSignal":
+      return {
+        title: "Create the anonymous signals contract",
+        detail: `Creates the anonymous signals contract with the verifier ${short(String(a[0]))}. Members of a group signal (vote, attest) once per poll without revealing which member they are. It has no owner and holds no tokens; the admin of each group is the account that creates it, and your address gets no role.`,
+      };
     case "ARLStakingRewards":
       return {
         title: "Create the staking rewards contract",
@@ -300,7 +446,10 @@ const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 export function recordCommand(
   run: DeployRun,
   runFile: string,
-): { kind: "safes" | "arl" | "jobs" | "services" | "arbiter"; command: string } {
+): {
+  kind: "safes" | "arl" | "jobs" | "services" | "arbiter" | "signal";
+  command: string;
+} {
   const rpc =
     run.chainId === LOCAL_CHAIN_ID ? "<local-rpc-url> --local-anvil" : "https://mainnet.base.org";
   const isJobs = (s: DeployStep) =>
@@ -334,6 +483,18 @@ export function recordCommand(
     return {
       kind: "services",
       command: `node packages/deploy/src/services-record-cli.ts ${runFile} ${rpc} contracts/deploy/deployments/${String(run.chainId)}-services.json`,
+    };
+  }
+  // The anonymous signals contract with its verifier and libraries (DeployMainnetSignal).
+  const isSignal = (s: DeployStep) =>
+    s.kind === "library" ||
+    s.kind === "verifier" ||
+    (s.kind === "create" && s.contract === "ARLAnonymousSignal");
+  if (run.steps.some(isSignal)) {
+    if (!run.steps.every(isSignal)) fail("the run mixes the anonymous signals with other steps");
+    return {
+      kind: "signal",
+      command: `node packages/deploy/src/signal-record-cli.ts ${runFile} ${rpc} contracts/deploy/deployments/${String(run.chainId)}-signal.json`,
     };
   }
   // A single Safe is the evaluator's arbiter (CreateArbiterSafe), not the twelve allocation Safes.
