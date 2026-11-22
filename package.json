@@ -23,6 +23,7 @@
     "monitor": "node packages/deploy/src/monitor-cli.ts",
     "verify:explorer": "node packages/deploy/src/explorer-cli.ts",
     "rehearse:local": "bash scripts/rehearse-local.sh",
+    "simulate:fork": "node scripts/simulate-verified-jobs.mjs",
     "rehearse:base-sepolia-fork": "bash scripts/rehearse-base-sepolia-fork.sh"
   },
   "devDependencies": {

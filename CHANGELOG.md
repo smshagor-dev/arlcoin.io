@@ -6,6 +6,17 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- A simulation of verified jobs against the contracts deployed on Base Mainnet, on a local fork
+  ([simulate-verified-jobs.mjs](scripts/simulate-verified-jobs.mjs), `npm run simulate:fork`).
+  It first settles the jobs that are open on Base the way they stand, then runs six jobs of its
+  own (an honest delivery, a wrong result, an agent that never delivers, a dispute the arbiter
+  overturns, a committee that never votes, a job for the registered ARL agent) and checks where
+  the budget, the bonds and the slashed stake end up. No key is used and nothing is sent to
+  Base.
+- Documents on the site: every heading has the anchor GitHub gives it, so a link to a section
+  of a document (`/docs/tokenomics#custody`) lands on that section. A test follows every such
+  link between the published documents ([renderDoc.ts](apps/web/src/site/renderDoc.ts)).
+- README: the n8n node's row names the repository the published package is built from.
 - ZK privacy: a relayer for anonymous signals, so the sender of a vote is not a wallet of the
   voter. It relays only the polls named in its settings, simulates every call first, keeps to a
   fee ceiling and answers only the app on the same site
