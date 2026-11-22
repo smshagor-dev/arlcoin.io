@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { checkPath } from "@/content/checks.ts";
+import { docPathFor } from "@/content/docs.ts";
 import { faqJsonLd } from "@/content/faq.ts";
 import { websiteJsonLd } from "@/content/seo.ts";
 import { getCard, getLayer, pathFor } from "@/content/registry.ts";
@@ -88,11 +90,31 @@ const BUILD = [
 ];
 
 const STANDARDS = [
-  { id: "arl-task", what: "What the work is, how it is paid and how it is checked" },
-  { id: "arl-proof", what: "The delivery and the evidence behind it" },
-  { id: "arl-policy", what: "How each kind of work is verified" },
-  { id: "arl-reputation", what: "A score that counts verified outcomes only" },
-  { id: "arl-evidence", what: "One package anyone can re-check against the chain" },
+  {
+    id: "arl-task",
+    readme: "spec/arl-task/v0.1.0/README.md",
+    what: "What the work is, how it is paid and how it is checked",
+  },
+  {
+    id: "arl-proof",
+    readme: "spec/arl-proof/v0.1.0/README.md",
+    what: "The delivery and the evidence behind it",
+  },
+  {
+    id: "arl-policy",
+    readme: "spec/arl-policy/v0.1.0/README.md",
+    what: "How each kind of work is verified",
+  },
+  {
+    id: "arl-reputation",
+    readme: "spec/arl-reputation/v0.1.0/README.md",
+    what: "A score that counts verified outcomes only",
+  },
+  {
+    id: "arl-evidence",
+    readme: "spec/arl-evidence/v0.2.0/README.md",
+    what: "One package anyone can re-check against the chain",
+  },
 ];
 
 const STEPS = [
@@ -365,14 +387,14 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href={`${SITE.repository}/blob/main/spec/arl-policy/v0.1.0/templates/${j.policy}.json`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={checkPath(j.policy)}
+                    prefetch={false}
+                    aria-label={`${j.title}: how it is checked`}
                     className="mt-4 inline-flex min-h-11 items-center font-mono text-[13px] font-semibold text-accent hover:underline"
                   >
                     {j.policy} ›
-                  </a>
+                  </Link>
                 </Reveal>
               </li>
             ))}
@@ -423,10 +445,9 @@ export default function Home() {
             {STANDARDS.map((st, i) => (
               <li key={st.id} className="list-none">
                 <Reveal delay={i * 60}>
-                  <a
-                    href={`${SITE.repository}/tree/main/spec/${st.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={docPathFor(st.readme)}
+                    prefetch={false}
                     className="glass block h-full rounded-[22px] p-5"
                   >
                     <span className="block font-mono text-[14px] font-semibold text-accent">
@@ -435,7 +456,7 @@ export default function Home() {
                     <span className="mt-2 block text-[14px] leading-[1.45] text-fg-muted">
                       {st.what}
                     </span>
-                  </a>
+                  </Link>
                 </Reveal>
               </li>
             ))}

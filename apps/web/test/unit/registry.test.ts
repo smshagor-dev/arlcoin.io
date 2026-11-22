@@ -158,6 +158,7 @@ describe("content accuracy", () => {
       "token/vesting",
       "token/contract-address",
       "token/liquidity",
+      "token/staked",
       "token/decimals",
       "token/standard",
       "token/network",

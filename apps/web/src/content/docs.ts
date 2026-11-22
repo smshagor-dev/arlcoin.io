@@ -74,6 +74,40 @@ export const DOCS: readonly DocEntry[] = [
       "Anonymous signals with zero-knowledge proofs, in development and not on Base Mainnet yet.",
   },
   {
+    slug: "arl-task",
+    source: "spec/arl-task/v0.1.0/README.md",
+    title: "arl-task",
+    description:
+      "The arl-task format: what the work is, how it is paid and how it is checked, in one document.",
+  },
+  {
+    slug: "arl-proof",
+    source: "spec/arl-proof/v0.1.0/README.md",
+    title: "arl-proof",
+    description: "The arl-proof format: the delivery of a job and the evidence that comes with it.",
+  },
+  {
+    slug: "arl-policy",
+    source: "spec/arl-policy/v0.1.0/README.md",
+    title: "arl-policy",
+    description:
+      "The arl-policy format: how each kind of work is verified, and the limits validators vote within.",
+  },
+  {
+    slug: "arl-reputation",
+    source: "spec/arl-reputation/v0.1.0/README.md",
+    title: "arl-reputation",
+    description:
+      "The arl-reputation format: an agent reputation that counts verified outcomes only.",
+  },
+  {
+    slug: "arl-evidence",
+    source: "spec/arl-evidence/v0.2.0/README.md",
+    title: "arl-evidence",
+    description:
+      "The arl-evidence format: one package of a job that anyone can re-check against the chain.",
+  },
+  {
     slug: "chain-evaluation",
     source: "docs/chain-evaluation.md",
     title: "Chain evaluation",

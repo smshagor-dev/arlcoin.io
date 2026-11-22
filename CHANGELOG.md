@@ -6,6 +6,15 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- [Checks](https://arlcoin.io/checks/): a page for the four kinds of work on the home page
+  (code, data analysis, GPU inference, research). For each it shows an example job, the rules
+  the validators approve by, what the agent delivers, and who checks within which windows, read
+  at build time from the published templates and policies of
+  [arl-policy](spec/arl-policy/v0.1.0), so the page cannot drift from the format
+  ([loadChecks.ts](apps/web/src/site/loadChecks.ts)). The home page cards open this page, and
+  the five open formats open their documents on the site (`/docs/arl-task` and the others)
+  instead of the code host. The FAQ and the Staked card now say what the chain shows: staking
+  is live and its first reward period runs since 16 November 2026.
 - ZK privacy: the Base Mainnet deployment of the anonymous signals is prepared and rehearsed.
   A deployment script for the verifier and `ARLAnonymousSignal`
   ([DeployMainnetSignal.s.sol](contracts/zk-script/DeployMainnetSignal.s.sol)), the plan it

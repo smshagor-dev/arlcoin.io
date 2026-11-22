@@ -71,6 +71,7 @@ export const SITE_PAGES = [
   "/hire",
   "/status",
   "/demo",
+  "/checks",
   "/contact",
   "/privacy",
   "/terms",

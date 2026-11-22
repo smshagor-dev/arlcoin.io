@@ -163,7 +163,7 @@ export const token: Layer = {
       id: "staked",
       title: "Staked",
       shortDescription: "Live on Base Mainnet; first period funded",
-      status: "IN DEVELOPMENT",
+      status: "LIVE",
       weight: "tertiary",
       metric: {
         kind: "unavailable",
@@ -171,7 +171,7 @@ export const token: Layer = {
         source: "chain.stakedSupply",
       },
       detail: {
-        summary: `The staking contract is deployed on Base Mainnet (12 November 2026) with 180-day reward periods; the first period of 300,000 ARL was funded by the Community & Staking Safe on 16 November 2026 and runs to 15 May 2027. Rewards are planned to come from the Community & Staking allocation (${formatArl(allocation("community-staking").amount)}) or from protocol revenue. Staking never creates new ARL.`,
+        summary: `The staking contract is deployed on Base Mainnet (12 November 2026) with 180-day reward periods; the first period of 300,000 ARL was funded by the Community & Staking Safe on 16 November 2026 and runs to 15 May 2027. Rewards come from the Community & Staking allocation (${formatArl(allocation("community-staking").amount)}) or from protocol revenue. Staking never creates new ARL.`,
       },
     },
     {
