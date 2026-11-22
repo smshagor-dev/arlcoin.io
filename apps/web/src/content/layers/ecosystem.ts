@@ -79,7 +79,10 @@ export const ecosystem: Layer = {
       title: "Documentation",
       shortDescription: "Architecture, tokenomics, security",
       weight: "tertiary",
-      detail: { summary: "Design documents for every part of ARL, kept with the code." },
+      detail: {
+        summary:
+          "Design documents for every part of ARL, kept with the code: architecture, tokenomics, security analysis, payments and the open formats for agent jobs.",
+      },
       links: [
         { label: "Architecture", href: repoDoc("docs/architecture.md") },
         { label: "Tokenomics", href: repoDoc("docs/tokenomics.md") },

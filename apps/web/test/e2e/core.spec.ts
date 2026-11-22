@@ -49,7 +49,7 @@ test("the Core cycles through the layers in place", async ({ page }) => {
   await mark(page);
   await core(page).click();
   await expect(page).toHaveURL(/\/core\/token$/);
-  await expect(page).toHaveTitle("Token · ARL Protocol");
+  await expect(page).toHaveTitle("Token: Supply, Allocation and Contract · ARL Protocol");
   await expectSameDocument(page);
   expect(errors).toEqual([]);
 });

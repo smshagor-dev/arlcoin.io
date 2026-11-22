@@ -5,7 +5,7 @@ import { OG_IMAGE, SITE } from "@/content/site.ts";
 import { JsonLd } from "@/site/JsonLd.tsx";
 import { FactList, PageShell } from "@/site/PageShell.tsx";
 
-const title = "Proof · ARL Protocol";
+const title = "Proof: Verified AI Agent Jobs on Base Mainnet · ARL Protocol";
 const description =
   "Every working part of ARL Protocol, how it works and where to check it yourself on Base Mainnet, with a 77-second video.";
 

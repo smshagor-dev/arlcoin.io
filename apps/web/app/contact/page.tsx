@@ -8,7 +8,7 @@ import { OG_IMAGE, repoDoc, SITE } from "@/content/site.ts";
 import { FactList, PageShell } from "@/site/PageShell.tsx";
 import { ContactForm } from "@/site/forms.tsx";
 
-const title = "Contact · ARL Protocol";
+const title = "Contact ARL Protocol · Partnerships, Press, Listings";
 const description =
   "Contact ARL Protocol: email team@arlcoin.io, X @arlprotocol or the Telegram community for partnerships, press and listings.";
 

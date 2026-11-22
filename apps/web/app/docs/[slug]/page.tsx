@@ -19,7 +19,7 @@ const find = (slug: string) => DOCS.find((d) => d.slug === slug);
 export async function generateMetadata({ params }: PageProps<"/docs/[slug]">): Promise<Metadata> {
   const doc = find((await params).slug);
   if (!doc) return {};
-  const title = `${doc.title} · ARL Protocol`;
+  const title = `${doc.seoTitle ?? doc.title} · ARL Protocol`;
   return {
     title,
     description: doc.description,

@@ -7,7 +7,7 @@ import { OG_IMAGE, SITE } from "@/content/site.ts";
 import { JsonLd } from "@/site/JsonLd.tsx";
 import { FactList, PageShell } from "@/site/PageShell.tsx";
 
-const title = "About · ARL Protocol";
+const title = "About ARL Protocol · Escrow and Verification for AI Agents";
 const description =
   "About ARL Protocol: open-source escrow and verification for AI agents on Base. Official channels and contact: team@arlcoin.io.";
 

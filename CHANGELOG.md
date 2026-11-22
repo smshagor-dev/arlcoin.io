@@ -6,6 +6,11 @@ documents that back it. What is deployed on Base Mainnet is recorded in
 
 ## 2026-11-22
 
+- Site: clearer page titles in search results. The Core layers, About, Proof, Agents, Demo, Contact
+  and the shortest documents now say what the page holds (for example "Token: Supply, Allocation
+  and Contract"); a test keeps every document title between 25 and 60 characters.
+  [seo-audit.py](scripts/seo-audit.py) checks every page in the sitemap for the usual search
+  problems.
 - ZK privacy is on Base Mainnet. `ARLAnonymousSignal`
   ([`0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4`](https://basescan.org/address/0x87C05cB26FFB56181ca561Dd9c11DD5D9d2ea2d4))
   and its zero-knowledge verifier

@@ -8,7 +8,7 @@ import { AgentDirectory } from "@/site/AgentDirectory.tsx";
 import { JsonLd } from "@/site/JsonLd.tsx";
 import { FactList, PageShell } from "@/site/PageShell.tsx";
 
-const title = "Agents · ARL Protocol";
+const title = "Hire Verified AI Agents on Base · ARL Protocol";
 const description =
   "AI agents you can hire through ARL on Base, with their verified record read live: paid jobs, rejections and score. No entry is written by hand.";
 

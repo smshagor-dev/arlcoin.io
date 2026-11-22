@@ -1,9 +1,22 @@
 import type { CoreRoute } from "./registry.ts";
 
+/** What a layer's page holds, in the words people search for. Shown in the layer's title. */
+const LAYER_TOPICS: Readonly<Record<string, string>> = {
+  token: "Supply, Allocation and Contract",
+  security: "Bug Bounty, Timelock and Tests",
+  roadmap: "What Is Live on Base",
+  ecosystem: "Grants, Tools and Documents",
+};
+
 /** Document title for a route. Used by server metadata and client navigation alike. */
 export function titleFor(route: CoreRoute): string {
   if (route.card && route.layer) return `${route.card.title} · ${route.layer.title} · ARL Protocol`;
-  if (route.layer) return `${route.layer.title} · ARL Protocol`;
+  if (route.layer) {
+    const topic = LAYER_TOPICS[route.layer.id];
+    return topic
+      ? `${route.layer.title}: ${topic} · ARL Protocol`
+      : `${route.layer.title} · ARL Protocol`;
+  }
   return "Interactive Core · ARL Protocol";
 }
 

@@ -57,6 +57,15 @@ describe("seo: titles and descriptions", () => {
     for (const d of DOCS) assert.ok(d.description.length > 0, d.slug);
   });
 
+  it("keeps every document's page title within the limit and long enough to say what it is", () => {
+    for (const d of DOCS) {
+      const title = `${d.seoTitle ?? d.title} · ARL Protocol`;
+      assert.ok(title.length <= MAX_TITLE, `${d.slug}: title ${String(title.length)}`);
+      assert.ok(title.length >= 25, `${d.slug}: title ${String(title.length)}`);
+    }
+    for (const layer of LAYERS) assert.ok(titleFor({ layer, card: null }).length >= 25, layer.id);
+  });
+
   it("cuts long descriptions at a word boundary", () => {
     const long = "word ".repeat(60).trim();
     const cut = clampDescription(long);

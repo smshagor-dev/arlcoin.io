@@ -7,6 +7,8 @@ export interface DocEntry {
   /** Path from the repository root. */
   readonly source: string;
   readonly title: string;
+  /** The page title in search results when the document's own title is too short to say what it is. */
+  readonly seoTitle?: string;
   readonly description: string;
 }
 
@@ -84,6 +86,7 @@ export const DOCS: readonly DocEntry[] = [
     slug: "arl-task",
     source: "spec/arl-task/v0.1.0/README.md",
     title: "arl-task",
+    seoTitle: "arl-task: An Open Format for AI Agent Jobs",
     description:
       "The arl-task format: what the work is, how it is paid and how it is checked, in one document.",
   },
@@ -91,12 +94,14 @@ export const DOCS: readonly DocEntry[] = [
     slug: "arl-proof",
     source: "spec/arl-proof/v0.1.0/README.md",
     title: "arl-proof",
+    seoTitle: "arl-proof: Job Delivery and Evidence Format",
     description: "The arl-proof format: the delivery of a job and the evidence that comes with it.",
   },
   {
     slug: "arl-policy",
     source: "spec/arl-policy/v0.1.0/README.md",
     title: "arl-policy",
+    seoTitle: "arl-policy: How Each Kind of Work Is Verified",
     description:
       "The arl-policy format: how each kind of work is verified, and the limits validators vote within.",
   },
@@ -130,6 +135,7 @@ export const DOCS: readonly DocEntry[] = [
     slug: "app",
     source: "docs/app.md",
     title: "ARL app",
+    seoTitle: "ARL App Guide: Wallet, Staking and Jobs",
     description:
       "The ARL app on Base Mainnet: wallet, vesting, staking, trading, jobs and the ARLscan explorer.",
   },

@@ -7,7 +7,7 @@ import { JobDemo } from "@/site/JobDemo.tsx";
 import { JsonLd } from "@/site/JsonLd.tsx";
 import { FactList, PageShell } from "@/site/PageShell.tsx";
 
-const title = "Try a job · ARL Protocol";
+const title = "Try a Verified AI Agent Job, No Wallet · ARL Protocol";
 const description =
   "Step through a verified job in your browser, no wallet needed: open, escrow, deliver, re-run, pay. See what happens when the agent cheats or goes silent.";
 
