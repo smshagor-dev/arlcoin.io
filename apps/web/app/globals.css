@@ -726,8 +726,13 @@
   }
 }
 
-/* How ARL works on Base: the five-step flow and the sliding row of blocks. */
+/* How ARL works on Base: the five-step flow and the sliding row of blocks. Everything in it
+   moves on one clock: the light crosses the steps once per cycle, each step pulses as the light
+   reaches it (its delay is set in ChainFlow.tsx from the same number), and the row of blocks
+   moves one block per cycle, so the highlighted block is under the last step as the light
+   arrives there. */
 .flow {
+  --flow-cycle: 4.5s;
   display: block;
   width: 100%;
   height: auto;
@@ -787,27 +792,55 @@
 }
 .flow-disc {
   fill: var(--color-surface-2);
-  stroke: rgb(217 183 122 / 0.45);
-  stroke-width: 1.5;
+  /* A dollar green ring around each step, lit like neon. It glows and dims softly, two breaths
+     per cycle of the light. */
+  stroke: #85bb65;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 5px rgb(133 187 101 / 0.95)) drop-shadow(0 0 14px rgb(133 187 101 / 0.6));
+  animation: flow-ring calc(var(--flow-cycle) / 2) ease-in-out infinite;
+}
+@keyframes flow-ring {
+  0%,
+  100% {
+    stroke: #85bb65;
+    filter: drop-shadow(0 0 5px rgb(133 187 101 / 0.95))
+      drop-shadow(0 0 14px rgb(133 187 101 / 0.6));
+  }
+  50% {
+    stroke: #5a8a43;
+    filter: drop-shadow(0 0 2px rgb(133 187 101 / 0.5)) drop-shadow(0 0 5px rgb(133 187 101 / 0.25));
+  }
 }
 .flow-halo {
   fill: rgb(217 183 122 / 0.08);
   transform-box: fill-box;
   transform-origin: center;
-  animation: flow-pulse 4.5s infinite;
+  animation: flow-pulse var(--flow-cycle) infinite;
   animation-delay: var(--d);
 }
 @keyframes flow-pulse {
-  0%,
-  22%,
+  0% {
+    opacity: 1;
+    transform: scale(1.12);
+    fill: rgb(217 183 122 / 0.22);
+  }
+  18%,
   100% {
     opacity: 0.3;
     transform: scale(0.9);
   }
-  8% {
-    opacity: 1;
-    transform: scale(1.12);
-    fill: rgb(217 183 122 / 0.22);
+}
+/* The light: it follows the rail (its path is set inline) at a steady speed. */
+.flow-packet {
+  offset-rotate: 0deg;
+  animation: flow-travel var(--flow-cycle) linear infinite;
+}
+@keyframes flow-travel {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
   }
 }
 .flow-dash,
@@ -826,15 +859,15 @@
   opacity: 0.6;
 }
 .flow-chain {
-  transform: translate(0, 326px);
-  animation: flow-slide 4.5s linear infinite;
+  transform: translate(0, 314px);
+  animation: flow-slide var(--flow-cycle) linear infinite;
 }
 @keyframes flow-slide {
   from {
-    transform: translate(0, 326px);
+    transform: translate(0, 314px);
   }
   to {
-    transform: translate(-116px, 326px);
+    transform: translate(-116px, 314px);
   }
 }
 .flow-chain rect {
@@ -845,6 +878,19 @@
   fill: var(--color-surface-3);
   stroke: var(--color-accent);
   stroke-width: 1.5;
+  animation: flow-land var(--flow-cycle) infinite;
+}
+/* The payment lands: the block lights up as the cycle starts, then settles. */
+@keyframes flow-land {
+  0% {
+    stroke-width: 3;
+    fill: rgb(217 183 122 / 0.28);
+  }
+  22%,
+  100% {
+    stroke-width: 1.5;
+    fill: var(--color-surface-3);
+  }
 }
 .flow-bn {
   font-size: 12px;
@@ -871,9 +917,11 @@
   .hero-logo-mark,
   .live-dot,
   .flow-halo,
+  .flow-disc,
   .flow-dash,
   .flow-drop,
-  .flow-chain {
+  .flow-chain,
+  .flow-chain .on rect {
     animation: none;
   }
   .flow-packet {

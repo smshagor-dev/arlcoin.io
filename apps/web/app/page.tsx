@@ -284,7 +284,7 @@ export default function Home() {
           <div
             aria-label="How ARL works on Base"
             role="group"
-            className="glass mx-auto mt-12 max-w-[1100px] rounded-[28px] px-2 pt-6 pb-5 sm:px-6 sm:pt-8"
+            className="glass mx-auto mt-12 max-w-[900px] rounded-[28px] px-2 pt-5 pb-4 sm:px-5 sm:pt-6"
           >
             <ChainFlow />
           </div>
