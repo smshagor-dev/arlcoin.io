@@ -68,6 +68,9 @@ function safeNumber(value: bigint, field: string): number {
  * unreadable files, unsupported cgroup mode and overflow all fail closed.
  */
 export async function readCgroupV2Counters(cgroupDirectory: string): Promise<CgroupV2Counters> {
+  if (process.platform !== "linux") {
+    throw new MeteringReceiptError("METER_COUNTERS_UNAVAILABLE", "Linux cgroup v2 is required");
+  }
   if (!cgroupDirectory.startsWith("/") || cgroupDirectory.includes("\0")) {
     throw new MeteringReceiptError(
       "METER_COUNTERS_UNAVAILABLE",
