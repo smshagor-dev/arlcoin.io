@@ -112,4 +112,41 @@ describe("metered Docker cgroup v2 integration", {
       await rm(directory, { recursive: true, force: true });
     }
   });
+  it("honors cancellation without returning a signed receipt", async () => {
+    assert.ok(root);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1_000);
+    try {
+      const spec = job("sleep 30; echo complete > /out/result.txt");
+      await assert.rejects(
+        () =>
+          executeAndPublishMeteredReceipt(
+            spec,
+            {
+              chainId: 31337,
+              evaluatorAddress: "0x1000000000000000000000000000000000000001",
+              jobId: "8",
+              meterPrivateKey: keccak256(stringToBytes("arl-metering-test-vector-only-not-private")),
+            },
+            {
+              cgroupRoot: root,
+              receiptPath: join(tmpdir(), "arl-cancel-" + process.pid + ".json"),
+              fetcher: {
+                file: () => Promise.reject(new Error("unexpected input")),
+                git: () => Promise.reject(new Error("unexpected input")),
+              },
+              signal: controller.signal,
+            },
+          ),
+        (error: unknown) =>
+          error instanceof Error &&
+          (error.name === "AbortError" ||
+            error.name === "MeteringReceiptError" ||
+            error.name === "METER_RUNTIME_FAILURE"),
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+
 });
