@@ -444,6 +444,27 @@ describe("metered votes against the real local evaluator", () => {
         }),
         { code: "REGISTRATION_UNAVAILABLE" },
       );
+      // An otherwise valid registration snapshot captured long AFTER this
+      // signed run must not be treated as proof of a pre-authorized meter key.
+      await testClient.increaseTime({ seconds: 180 });
+      await testClient.mine({ blocks: 1 });
+      const lateRegistration = {
+        ...registration,
+        registrationBlock: await rpc.getBlockNumber({ cacheTime: 0 }),
+      };
+      await assert.rejects(
+        () =>
+          executeAndVoteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: delivered,
+            registration: lateRegistration,
+            replay: firstStore,
+            execution: { ...execOptions, runner: forbiddenRunner },
+          }),
+        { code: "REGISTRATION_UNAVAILABLE" },
+      );
+      assert.equal(invalidReceiptExecutions, 0, "late key registration must not start a run");
       const first = await executeAndVoteMeteredJob({
         ...common,
         wallet: wallet(v1),
