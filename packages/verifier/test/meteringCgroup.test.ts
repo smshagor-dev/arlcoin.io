@@ -41,25 +41,25 @@ describe("Linux cgroup v2 counter reader", () => {
     "reads the actual cgroup file interface, not Node process or docker stats",
     { skip: process.platform !== "linux" && "requires Linux cgroup file semantics" },
     async () => {
-    const directory = await mkdtemp(join(tmpdir(), "arl-metering-cgroup-"));
-    try {
-      await Promise.all([
-        writeFile(join(directory, "cgroup.controllers"), "cpu memory io\n"),
-        writeFile(join(directory, "cpu.stat"), "usage_usec 45678\nuser_usec 45000\nnr_periods 3\n"),
-        writeFile(join(directory, "memory.peak"), "9876543\n"),
-      ]);
-      const counters = await readCgroupV2Counters(directory);
-      assert.deepEqual(counters, {
-        cpuTimeNs: 45_678_000,
-        memoryPeakBytes: 9_876_543,
-      });
-      await writeFile(join(directory, "memory.peak"), "9007199254740992\n");
-      await assert.rejects(() => readCgroupV2Counters(directory), {
-        code: "METER_COUNTERS_UNAVAILABLE",
-      });
-    } finally {
-      await rm(directory, { recursive: true, force: true });
-    }
+      const directory = await mkdtemp(join(tmpdir(), "arl-metering-cgroup-"));
+      try {
+        await Promise.all([
+          writeFile(join(directory, "cgroup.controllers"), "cpu memory io\n"),
+          writeFile(join(directory, "cpu.stat"), "usage_usec 45678\nuser_usec 45000\nnr_periods 3\n"),
+          writeFile(join(directory, "memory.peak"), "9876543\n"),
+        ]);
+        const counters = await readCgroupV2Counters(directory);
+        assert.deepEqual(counters, {
+          cpuTimeNs: 45_678_000,
+          memoryPeakBytes: 9_876_543,
+        });
+        await writeFile(join(directory, "memory.peak"), "9007199254740992\n");
+        await assert.rejects(() => readCgroupV2Counters(directory), {
+          code: "METER_COUNTERS_UNAVAILABLE",
+        });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
     },
   );
 
