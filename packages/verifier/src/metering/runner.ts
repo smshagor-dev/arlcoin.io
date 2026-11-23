@@ -9,7 +9,13 @@ import { mkdir, readFile, realpath, rmdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { promisify } from "node:util";
 
-import { diskUsage, dockerRunArgs, MAX_JOB_DISK_BYTES, type ContainerRunner, type RunStatus } from "../docker.ts";
+import {
+  diskUsage,
+  dockerRunArgs,
+  MAX_JOB_DISK_BYTES,
+  type ContainerRunner,
+  type RunStatus,
+} from "../docker.ts";
 import type { ReexecSpec } from "../spec.ts";
 import { readCgroupV2Counters } from "./cgroup.ts";
 import { MeteringReceiptError } from "./receipt.ts";
@@ -196,7 +202,10 @@ export class MeteredDockerRunner implements ContainerRunner {
         ["inspect", "--format", "{{.HostConfig.CgroupParent}}", name],
       );
       if (actualParent !== dockerParent) {
-        throw new MeteringReceiptError("METER_COUNTERS_UNAVAILABLE", "wrong container cgroup parent");
+        throw new MeteringReceiptError(
+          "METER_COUNTERS_UNAVAILABLE",
+          "wrong container cgroup parent",
+        );
       }
       if (signal?.aborted || timedOut) stop();
 
@@ -220,7 +229,11 @@ export class MeteredDockerRunner implements ContainerRunner {
         });
       }, DISK_POLL_MS);
 
-      const status = await docker(this.#docker, ["wait", name], spec.limits.seconds * 1000 + 30_000);
+      const status = await docker(
+        this.#docker,
+        ["wait", name],
+        spec.limits.seconds * 1000 + 30_000,
+      );
       const finished_at = Math.floor(Date.now() / 1000);
       const elapsed_ns = elapsedSafe(monotonicStart);
       stopped = true;
