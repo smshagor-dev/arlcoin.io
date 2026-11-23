@@ -8,7 +8,7 @@ This first specification PR fixes the wire format, hashing rules and reproducibl
 
 ## 1. Model and relationship to existing ARL documents
 
-A provider submits the canonical hash of an `arl-reexec-result/1` manifest as its deliverable. A validator independently re-executes the committed `arl-reexec/1` spec and computes the result manifest and its hash. For one measured validator re-execution, a meter emits a receipt document signed with its *separate* per-meter EOA key. A validator verifies the receipt and registry binding **before** using it in its vote evidence.
+A provider submits the canonical hash of an `arl-reexec-result/1` manifest as its deliverable. A validator independently re-executes the committed `arl-reexec/1` spec and computes the result manifest and its hash. A provider-controlled meter (or a meter explicitly authorized for the submitting provider) emits a receipt for one measured execution, signed using its *separate* per-meter EOA key. The validator verifies the provider's signed receipt and registry binding **before** voting, and separately re-executes the committed spec to establish result correctness. The validator must not receive or reuse the provider's meter private key.
 
 Three hashes have distinct jobs:
 
@@ -116,6 +116,12 @@ The registration is independently authenticated. A receipt's `signature` proves 
 **This is a proposed namespace, not an asserted ERC-8004 standard field.** The upstream team needs to confirm its placement, authorization process, historical key-rotation policy, and a binding strategy against mutable HTTPS metadata. The `agentWallet` value alone is **not** automatically a per-meter signing key. A job with agent ID zero, an unreachable registry, unverifiable ownership, absent metadata or ambiguous history must **fail closed for metered approval**, unless the local Anvil demonstration explicitly uses an authenticated, test-only registration fixture.
 
 Stateless verification rejects a receipt bound to another chain/evaluator/job/spec/deliverable, but cannot know whether an otherwise valid signed receipt was already accepted. Enforce durable, atomic uniqueness over `(chain_id, evaluator_address, job_id, expected_signer, nonce)` and a **one accepted receipt per configured validator re-execution/run policy**. Persist decisions across restarts; prohibit duplicate `run_id`, and define an explicit retry/rotation policy. A local test in-memory store is not production replay protection. Retrieval from a different metadata block must not retrospectively authorize old signatures.
+
+### Receipt producer and transport: unresolved integration choice
+
+The current `ARLJobs.submit` records a `bytes32 deliverable`, not a metering document; the existing `JobSubmitted` log and `packages/verifier/src/chain.ts` do not provide a signed-receipt URI. The team must agree on how validators discover the **provider-produced** envelope (for example, an authenticated sidecar discoverable by chain/evaluator/job ID) and how availability, integrity, size limits and replay are handled without a contract change. Receipt retrieval is untrusted until its signature and registered meter identity verify. A receipt for a provider run cannot be represented as though it measured a validator's separate re-execution: the two resource usages will differ. Conversely, if the desired signed receipt represents a validator-owned run, the requirement to resolve the signer from the **provider's** ERC-8004 registration must be clarified; a validator cannot safely use the provider's private metering key.
+
+This is a **protocol decision blocker for PR 2**, not a reason to silently invent a network endpoint or embed the meter key inside the validator.
 
 ## 6. Measurement semantics and lifecycle
 
