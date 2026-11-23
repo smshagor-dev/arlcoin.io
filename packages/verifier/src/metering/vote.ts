@@ -36,7 +36,8 @@ export interface MeteredJobVoteInput {
   /** Independent registration metadata bytes and trusted historical content pin. */
   registration: MeterRegistrationSnapshot;
   replay: MeteringReplayStore;
-  maxReceiptAgeSeconds?: number;
+  /** Explicit mandatory freshness window for authorization; no implicit unlimited age. */
+  maxReceiptAgeSeconds: number;
   maxFutureSkewSeconds?: number;
 }
 
@@ -55,6 +56,15 @@ export interface MeteredJobVoteResult extends MeteredApproval {
  * Existing non-metered watcher behavior remains unchanged.
  */
 export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<MeteredJobVoteResult> {
+  if (
+    !Number.isSafeInteger(input.maxReceiptAgeSeconds) ||
+    input.maxReceiptAgeSeconds <= 0
+  ) {
+    throw new MeteringReceiptError(
+      "INVALID_TIMESTAMP",
+      "a positive explicit receipt freshness window is mandatory",
+    );
+  }
   const me = input.wallet.account.address;
   const job = await readJob(input.client, input.evaluator, input.jobId, me);
 
@@ -90,13 +100,9 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
     deliverableHash: job.deliverable,
     containerDigest: input.spec.container_digest,
     expectedSigner,
-    ...(input.maxReceiptAgeSeconds === undefined
-      ? {}
-      : {
-          nowSeconds: Math.floor(Date.now() / 1000),
-          maxReceiptAgeSeconds: input.maxReceiptAgeSeconds,
-          maxFutureSkewSeconds: input.maxFutureSkewSeconds ?? 5,
-        }),
+    nowSeconds: Math.floor(Date.now() / 1000),
+    maxReceiptAgeSeconds: input.maxReceiptAgeSeconds,
+    maxFutureSkewSeconds: input.maxFutureSkewSeconds ?? 5,
   };
   const approval = await buildMeteredApproval({
     spec: input.spec,
