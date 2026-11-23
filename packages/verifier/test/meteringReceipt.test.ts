@@ -125,6 +125,31 @@ describe("metering receipt schema and EIP-712 verifier", () => {
     );
   });
 
+  it("enforces explicit freshness and rejects receipts claiming future execution", async () => {
+    await assert.rejects(
+      () =>
+        verifyMeteringReceipt(envelope, {
+          ...context,
+          nowSeconds: receipt.finished_at + 120,
+          maxReceiptAgeSeconds: 60,
+        }),
+      { code: "RECEIPT_EXPIRED" },
+    );
+    await assert.rejects(
+      () =>
+        verifyMeteringReceipt(envelope, {
+          ...context,
+          nowSeconds: receipt.started_at - 100,
+          maxFutureSkewSeconds: 5,
+        }),
+      { code: "INVALID_TIMESTAMP" },
+    );
+    await assert.rejects(
+      () => verifyMeteringReceipt(envelope, { ...context, maxReceiptAgeSeconds: 30 }),
+      { code: "INVALID_TIMESTAMP" },
+    );
+  });
+
   it("detects duplicate JSON object keys at every depth including escape-equivalent keys", () => {
     const validJson = JSON.stringify(envelope);
     assert.equal(parseSignedMeteringReceiptJson(validJson).receipt.job_id, receipt.job_id);
