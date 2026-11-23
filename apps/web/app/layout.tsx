@@ -6,6 +6,7 @@ import { organizationJsonLd } from "@/content/seo.ts";
 import { OG_IMAGE, SITE } from "@/content/site.ts";
 import { InfrastructureStrip } from "@/site/InfrastructureStrip.tsx";
 import { JsonLd } from "@/site/JsonLd.tsx";
+import { NeonSync } from "@/site/NeonSync.tsx";
 import { SmoothScroll } from "@/site/SmoothScroll.tsx";
 import { SoftNavigation } from "@/site/SoftNavigation.tsx";
 
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <InfrastructureStrip />
         <SoftNavigation />
         <SmoothScroll />
+        <NeonSync />
       </body>
     </html>
   );

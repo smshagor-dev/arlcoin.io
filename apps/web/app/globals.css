@@ -40,6 +40,8 @@
 
 @layer base {
   :root {
+    /* One beat for every neon frame and dot, so they all light up together (NeonSync). */
+    --neon-beat: 2s;
     color-scheme: dark;
   }
 
@@ -168,12 +170,12 @@
   .material-card[data-tint][data-status="LIVE"],
   .material-card[data-tint][data-progress="done"] {
     border-color: color-mix(in srgb, var(--tint) 75%, transparent);
-    animation: tint-neon 2.4s ease-in-out infinite;
+    animation: tint-neon var(--neon-beat) ease-in-out infinite;
   }
   .material-card[data-tint][data-progress="active"] {
     --tint: #2ea8ff;
     border-color: #2ea8ff;
-    animation: road-frame 1.6s ease-in-out infinite;
+    animation: road-frame var(--neon-beat) ease-in-out infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     .material-card[data-tint][data-status="LIVE"],
@@ -973,14 +975,14 @@
 }
 .landing-road li[data-progress="done"] {
   border-color: #85bb65;
-  animation: done-frame 2.4s ease-in-out infinite;
+  animation: done-frame var(--neon-beat) ease-in-out infinite;
 }
 .landing-road li[data-progress="done"]::before {
   background: #a9e07f;
   box-shadow:
     0 0 6px #85bb65,
     0 0 14px rgb(133 187 101 / 0.9);
-  animation: road-blink 2.4s ease-in-out infinite;
+  animation: road-blink var(--neon-beat) ease-in-out infinite;
 }
 .landing-road li[data-progress="done"] .road-state {
   color: #a9d68c;
@@ -988,14 +990,14 @@
 }
 .landing-road li[data-progress="active"] {
   border-color: #2ea8ff;
-  animation: road-frame 1.6s ease-in-out infinite;
+  animation: road-frame var(--neon-beat) ease-in-out infinite;
 }
 .landing-road li[data-progress="active"]::before {
   background: #5cc2ff;
   box-shadow:
     0 0 6px #2ea8ff,
     0 0 14px rgb(46 168 255 / 0.9);
-  animation: road-blink 1.6s ease-in-out infinite;
+  animation: road-blink var(--neon-beat) ease-in-out infinite;
 }
 .landing-road li[data-progress="active"] .road-state {
   color: #7fd0ff;
@@ -1597,23 +1599,23 @@ html.lenis body {
 .status-pill[data-status="live"] .status-dot {
   background: #a9e07f;
   box-shadow: 0 0 8px rgb(133 187 101 / 0.9);
-  animation: road-blink 2.4s ease-in-out infinite;
+  animation: road-blink var(--neon-beat) ease-in-out infinite;
 }
 .status-pill[data-status="building"] {
   border-color: rgb(217 183 122 / 0.6);
   color: #e3c58f;
 }
 .status-pill[data-status="building"] .status-dot {
-  animation: road-blink 1.6s ease-in-out infinite;
+  animation: road-blink var(--neon-beat) ease-in-out infinite;
 }
 /* A card that carries a status wears it on its frame too (the four checks on the home page). */
 .status-frame-live {
   border: 1.5px solid #85bb65;
-  animation: done-frame 2.4s ease-in-out infinite;
+  animation: done-frame var(--neon-beat) ease-in-out infinite;
 }
 .status-frame-building {
   border: 1.5px solid var(--color-accent);
-  animation: road-frame 1.6s ease-in-out infinite;
+  animation: road-frame var(--neon-beat) ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .status-pill[data-status="building"] .status-dot,
