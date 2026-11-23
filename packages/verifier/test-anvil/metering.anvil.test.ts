@@ -30,6 +30,7 @@ import {
   acceptJob,
   execute,
   FileMeteringReplayStore,
+  readPinnedMeteringArtifact,
   parseSpec,
   produceMeteringReceipt,
   readJob,
@@ -316,6 +317,19 @@ describe("metered votes against the real local evaluator", () => {
     assert.equal(independent.hash, providerRun.hash);
     const directory = await mkdtemp(join(tmpdir(), "arl-metered-anvil-"));
     try {
+      // Standalone local receipt handoff: no unapproved network transport and no
+      // validator access to the provider private key.
+      const artifactPath = join(directory, "provider-receipt.json");
+      const artifactBytes = Buffer.from(JSON.stringify(signed) + "\n");
+      await writeFile(artifactPath, artifactBytes, { mode: 0o600 });
+      const artifactSha256 = (
+        "0x" + createHash("sha256").update(artifactBytes).digest("hex")
+      ) as Hex;
+      const { signed: delivered } = await readPinnedMeteringArtifact(
+        artifactPath,
+        artifactSha256,
+      );
+      assert.equal(delivered.signature, signed.signature);
       const common = {
         client: rpc,
         evaluator,
@@ -382,7 +396,7 @@ describe("metered votes against the real local evaluator", () => {
       assert.equal((await readJob(rpc, evaluator, jobId, v1.address)).memberState, MemberState.Accepted);
       await assert.rejects(
         () => voteMeteredJob({
-          ...common, wallet: wallet(v1), receipt: signed, replay: firstStore,
+          ...common, wallet: wallet(v1), receipt: delivered, replay: firstStore,
           registration: {
             ...registration,
             pinnedRegistrationSha256: ("0x" + "0".repeat(64)) as Hex,
@@ -391,12 +405,12 @@ describe("metered votes against the real local evaluator", () => {
         { code: "REGISTRATION_UNAVAILABLE" },
       );
       const first = await voteMeteredJob({
-        ...common, wallet: wallet(v1), receipt: signed, replay: firstStore,
+        ...common, wallet: wallet(v1), receipt: delivered, replay: firstStore,
       });
       const second = await voteMeteredJob({
         ...common,
         wallet: wallet(v2),
-        receipt: signed,
+        receipt: delivered,
         replay: new FileMeteringReplayStore(directory, v2.address),
       });
       assert.equal(first.evidenceHash, second.evidenceHash);
@@ -404,7 +418,7 @@ describe("metered votes against the real local evaluator", () => {
       const audited = await verifyMeteredEvidence({
         spec: SPEC,
         result: independent.result,
-        receipt: signed,
+        receipt: delivered,
         context: {
           chainId: 31337,
           evaluatorAddress: evaluator,
