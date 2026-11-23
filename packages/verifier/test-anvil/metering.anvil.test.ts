@@ -148,7 +148,16 @@ let identity: Address;
 let agentId: bigint;
 
 before(async () => {
-  anvil = spawn("anvil", ["--port", String(PORT), "--silent"], { stdio: "ignore" });
+  const occupied = await rpc.getBlockNumber().then(
+    () => true,
+    () => false,
+  );
+  if (occupied) {
+    throw new Error("metering Anvil port already serves an RPC; refusing to reuse it");
+  }
+  anvil = spawn("anvil", ["--port", String(PORT), "--chain-id", "31337", "--silent"], {
+    stdio: "ignore",
+  });
   for (let i = 0; ; i++) {
     try {
       await rpc.getBlockNumber({ cacheTime: 0 });
@@ -158,6 +167,8 @@ before(async () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
+  assert.equal(await rpc.getChainId(), 31337);
+  assert.equal(await rpc.getBlockNumber({ cacheTime: 0 }), 0n, "Anvil must be a fresh chain");
   for (const account of [client, provider, v1, v2]) {
     await testClient.setBalance({ address: account.address, value: parseUnits("10", 18) });
   }
