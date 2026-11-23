@@ -30,7 +30,11 @@ The existing execute() API may return optional Execution.metering. This is separ
 
 Only the trusted provider-side runtime should call produceMeteringReceipt(spec, execution, identity) with a separate provider meter private key. The producer requires an accepted, zero-exit run, a matching spec and result commitment, and actual metering fields. It creates cryptographically random run_id and nonce and signs an EIP-712 message.
 
-The validator never holds the provider's meter private key. It must independently authenticate the authorized signing address from the provider's on-chain bound registration before calling verifyMeteringReceipt(). Signed measurements prove integrity and attribution under the trusted-host assumption, not physical resource consumption against an administrator-controlled host.
+The validator never holds the provider's meter private key. Signed measurements prove integrity and attribution under the trusted-host assumption, not physical resource consumption against an administrator-controlled host.
+
+An **opt-in provisional resolver** in packages/verifier/src/metering/registration.ts reads the historical evaluator identity registry address, the job's provider and configured ERC-8004 provider agent ID, and the agent owner and tokenURI at a caller-selected registrationBlock. It requires a trusted external SHA-256 commitment to the *exact registration JSON bytes* and checks the registration's identity cross-reference and proposed extensions["arl-metering-receipt/1"].signer field. It rejects missing registration, wrong owner, mutable substituted metadata, malformed JSON, wrong chain and wrong job context. The verifyRegisteredMeteringReceipt wrapper resolves the signer first, then checks the EIP-712 receipt. It does not trust a self-declared signer or an HTTPS URL alone.
+
+The trusted registration block number, SHA-256 commitment source, extension namespace and historical key-rotation policy **still require upstream approval**. This provisional resolver takes untrusted document bytes as an argument and does not fetch arbitrary remote URLs; an authenticated receipt transport is not yet implemented. Never treat a current, mutable metadata URL as an authorization snapshot.
 
 ## Validation
 
@@ -50,6 +54,6 @@ The test runs a pinned BusyBox CPU/memory workload, reads retained counters, sig
 
 ## Remaining integration work
 
-The approved execution identity (provider original execution versus validator re-execution), receipt transport, authenticated historical ERC-8004 meter-key registration, replay policy and failure-evidence representation require upstream confirmation. The live watcher, Anvil vote demonstration and complete CI suite are not yet integrated or verified. The file-backed per-validator replay reservation is provisional and must not be represented as the agreed protocol policy.
+The approved execution identity (provider original execution versus validator re-execution), receipt transport, historical ERC-8004 pin and signer-rotation policy, replay policy and failure-evidence representation require upstream confirmation. The live watcher, Anvil vote demonstration and complete CI suite are not yet integrated or verified. The file-backed per-validator replay reservation is provisional and must not be represented as the agreed protocol policy.
 
 No Solidity, deployed address, billing, payment or tokenomics change is part of this work.

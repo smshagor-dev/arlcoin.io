@@ -15,3 +15,4 @@ export * from "./metering/cgroup.ts";
 export * from "./metering/runner.ts";
 export * from "./metering/produce.ts";
 export * from "./metering/replay.ts";
+export * from "./metering/registration.ts";
