@@ -272,15 +272,8 @@ describe("metered votes against the real local evaluator", () => {
       await acceptJob(wallet(validator), rpc, evaluator, jobId);
     }
 
-    const providerRun = await execute(SPEC, execOptions);
-    const signed = await produceMeteringReceipt(SPEC, providerRun, {
-      chainId: 31337,
-      evaluatorAddress: evaluator,
-      jobId: jobId.toString(),
-      meterPrivateKey: meterKey,
-    });
-    await send(provider, jobs, "ARLJobs", "submit", [jobId, providerRun.hash, "0x"]);
-
+    // Publish and pin the meter signer BEFORE the provider executes or signs usage.
+    // The validator resolves this historical snapshot, not a later mutable URI.
     const registrationDocument = {
       type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
       registrations: [
@@ -312,6 +305,15 @@ describe("metered votes against the real local evaluator", () => {
         args: [agentId] }),
       uri,
     );
+
+    const providerRun = await execute(SPEC, execOptions);
+    const signed = await produceMeteringReceipt(SPEC, providerRun, {
+      chainId: 31337,
+      evaluatorAddress: evaluator,
+      jobId: jobId.toString(),
+      meterPrivateKey: meterKey,
+    });
+    await send(provider, jobs, "ARLJobs", "submit", [jobId, providerRun.hash, "0x"]);
 
     const independent = await execute(SPEC, execOptions);
     assert.equal(independent.hash, providerRun.hash);
