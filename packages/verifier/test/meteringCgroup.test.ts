@@ -37,7 +37,10 @@ describe("Linux cgroup v2 counter reader", () => {
     });
   });
 
-  it("reads the actual cgroup file interface, not Node process or docker stats", async () => {
+  it(
+    "reads the actual cgroup file interface, not Node process or docker stats",
+    { skip: process.platform !== "linux" && "requires Linux cgroup file semantics" },
+    async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-metering-cgroup-"));
     try {
       await Promise.all([
@@ -57,7 +60,8 @@ describe("Linux cgroup v2 counter reader", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  });
+    },
+  );
 
   it("fails closed if the cgroup was removed before final readings", async () => {
     await assert.rejects(
