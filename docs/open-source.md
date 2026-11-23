@@ -94,3 +94,29 @@ as a deployed instance only. Exact provenance is in `THIRD_PARTY_LICENSES.md`.
 
 Each later-phase selection needs its own full review (security history, test
 status, maintenance) before its phase begins.
+
+
+## Verifiable resource metering: implementation evaluation (2026-11-23)
+
+For Issue #329, the reference implementation is built with **already adopted**
+components and host-kernel interfaces; it does not vendor a new third-party
+metering or cryptographic library.
+
+| Candidate | Decision | Reason |
+| --- | --- | --- |
+| Existing Docker CLI and pinned DockerRunner arguments | Reuse | Preserves job isolation, image digest pinning and resource limits while creating a dedicated cgroup parent for metering |
+| Linux cgroup v2 cpu.stat and memory.peak | Use on supported Linux cgroupfs hosts | Kernel accounting covers process trees and retains hierarchical counters in a dedicated parent after the container exits |
+| Docker stats sampled memory usage | Reject for receipt peak | A sampled figure is not the required cgroup high-water mark |
+| Node.js process CPU and heap metrics | Reject | Those counters measure the validator host process, not the workload container |
+| Existing viem 2.56.9 | Reuse | Supports EIP-712 hashing, signing and address recovery; no hand-written ECDSA implementation |
+| Node.js filesystem exclusive-create and fsync | Use provisionally | Per-validator durable replay reservation without introducing a database or dependency; policy still awaits upstream approval |
+
+The reference Docker metering path requires a securely provisioned host with
+cgroup v2 and Docker's cgroupfs driver. Docker's systemd driver is not yet
+supported; its support and complete container-integration validation remain
+open. Historical ERC-8004 signer registration is checked against an externally
+trusted metadata content pin; the pin lifecycle and extension field need an
+upstream protocol decision. See docs/verifiable-resource-metering.md.
+
+No new external dependency, vendored third-party code or license change was
+introduced for this implementation.
