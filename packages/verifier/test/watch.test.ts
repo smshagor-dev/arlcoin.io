@@ -8,6 +8,7 @@ import {
   DEFAULT_ACCEPT_POLICY,
   canonicalHash,
   decideOrFail,
+  MAX_INPUTS,
   parseSpec,
   specHash,
   voteSpec,
@@ -76,6 +77,59 @@ describe("keeper: a vote that cannot be computed", () => {
         error: "re-execution failed",
         reason: "no spec matching the job's specHash is available",
       }),
+    );
+  });
+});
+
+describe("keeper: a job that would outlast the vote window", () => {
+  // One input whose server accepts the connection and never answers (security report
+  // 2026-11-20): the keeper must still vote before the window closes, not hang and be slashed.
+  const slow = parseSpec({
+    ...JSON.parse(JSON.stringify(spec)),
+    inputs: [
+      { kind: "file", path: "in.bin", url: "https://example.com/in.bin", sha256: "e".repeat(64) },
+    ],
+  });
+  let fetches = 0;
+  const hanging = (now: bigint) =>
+    ({
+      client: { getBlock: () => Promise.resolve({ timestamp: now }) } as unknown as PublicClient,
+      exec: {
+        fetcher: {
+          file: () => {
+            fetches += 1;
+            return new Promise<Buffer>(() => undefined);
+          },
+          git: () => new Promise<void>(() => undefined),
+        },
+        runner: { run: () => Promise.reject(new Error("must not run")) },
+      },
+    }) as unknown as WatchDeps;
+
+  it("votes to reject at the job's deadline instead of hanging", async () => {
+    const d = await decideOrFail(hanging(699n), 1_000n, slow, specHash(slow), D);
+    assert.equal(fetches, 1);
+    assert.ok(d);
+    assert.equal(d.approve, false);
+    assert.match(d.reason, /did not finish within 1 s/);
+  });
+
+  it("votes at once when no time is left to re-execute", async () => {
+    const d = await decideOrFail(hanging(750n), 1_000n, slow, specHash(slow), D);
+    assert.ok(d);
+    assert.match(d.reason, /no time left/);
+  });
+
+  it("refuses a spec with more inputs than a job can fetch in time", () => {
+    const many = Array.from({ length: MAX_INPUTS + 1 }, (_, i) => ({
+      kind: "file",
+      path: `in${String(i)}.bin`,
+      url: "https://example.com/in.bin",
+      sha256: "e".repeat(64),
+    }));
+    assert.throws(
+      () => parseSpec({ ...JSON.parse(JSON.stringify(spec)), inputs: many }),
+      /at most 32 inputs/,
     );
   });
 });

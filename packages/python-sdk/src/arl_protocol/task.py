@@ -8,15 +8,30 @@ differ between implementations.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from web3 import Web3
 
 TASK_VERSION = "arl-task/1"
 
+# A code point between U+D800 and U+DFFF: in a Python str it is always a lone surrogate.
+_LONE_SURROGATE = re.compile("[\\ud800-\\udfff]")
+
 
 class CanonicalError(ValueError):
     """A value that has no canonical JSON form."""
+
+
+def _json_string(text: str) -> str:
+    """A string escaped exactly as JSON.stringify escapes it.
+
+    Non-ASCII characters and DEL stay as they are, and a lone surrogate becomes a lowercase
+    \\uXXXX escape, as in well-formed JSON.stringify. Keys used to go through json.dumps with
+    ensure_ascii and hashed differently from TypeScript (security report 2026-11-20).
+    """
+    escaped = json.dumps(text, ensure_ascii=False)
+    return _LONE_SURROGATE.sub(lambda m: f"\\u{ord(m.group()):04x}", escaped)
 
 
 def _canonical(value: Any) -> str:
@@ -29,7 +44,7 @@ def _canonical(value: Any) -> str:
     if isinstance(value, float):
         raise CanonicalError(f"floats have no canonical form: {value}")
     if isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False)
+        return _json_string(value)
     if isinstance(value, list):
         return "[" + ",".join(_canonical(v) for v in value) + "]"
     if isinstance(value, dict):
@@ -39,7 +54,7 @@ def _canonical(value: Any) -> str:
         items = sorted(value.items(), key=lambda kv: kv[0])
         return (
             "{"
-            + ",".join(json.dumps(k) + ":" + _canonical(v) for k, v in items)
+            + ",".join(_json_string(k) + ":" + _canonical(v) for k, v in items)
             + "}"
         )
     raise CanonicalError(f"cannot canonicalize a {type(value).__name__}")

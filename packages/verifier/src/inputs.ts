@@ -249,13 +249,17 @@ async function materializeGit(input: GitInput, target: string, fetcher: Fetcher)
   await rm(join(target, ".git"), { recursive: true, force: true });
 }
 
-/** Writes every input of `spec` under `workDir` (which must be empty). */
+/** Writes every input of `spec` under `workDir` (which must be empty), stopping once `signal` aborts. */
 export async function materialize(
   spec: ReexecSpec,
   workDir: string,
   fetcher: Fetcher,
+  signal?: AbortSignal,
 ): Promise<void> {
   for (const input of spec.inputs) {
+    // Each fetch has its own deadline, but they add up: the job's deadline stops the rest
+    // (security report 2026-11-20, a spec with many slow inputs).
+    signal?.throwIfAborted();
     const target = inside(workDir, input.path);
     if (!(await noSymlinkOnPath(workDir, target))) {
       throw new InputError(`${input.path} goes through a symlinked directory`);

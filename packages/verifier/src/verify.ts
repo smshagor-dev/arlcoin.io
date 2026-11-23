@@ -73,6 +73,8 @@ export interface ExecuteOptions {
   fetcher: Fetcher;
   /** Parent of the temporary work and output directories. */
   tmpRoot?: string;
+  /** Stops the re-execution between steps once aborted (the keeper's deadline for the job). */
+  signal?: AbortSignal;
 }
 
 export async function execute(spec: ReexecSpec, opts: ExecuteOptions): Promise<Execution> {
@@ -80,7 +82,8 @@ export async function execute(spec: ReexecSpec, opts: ExecuteOptions): Promise<E
   try {
     const work = await mkdtemp(join(root, "work-"));
     const out = await mkdtemp(join(root, "out-"));
-    await materialize(spec, work, opts.fetcher);
+    await materialize(spec, work, opts.fetcher, opts.signal);
+    opts.signal?.throwIfAborted();
     await openUp(work);
     await openUp(out);
     const status = await opts.runner.run(spec, work, out);

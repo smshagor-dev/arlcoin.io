@@ -138,6 +138,12 @@ export interface WatchDeps {
  */
 export const FAILURE_VOTE_MARGIN = 300n;
 
+/**
+ * Longest a re-execution may take while the job's vote window has not opened yet (seconds). Once it
+ * has, the deadline is FAILURE_VOTE_MARGIN before it closes.
+ */
+export const JOB_DEADLINE_SECONDS = 1800n;
+
 /** The spec at `uri` (the job's description), parsed and size-checked. */
 export async function fetchSpec(uri: string, fetcher: Pick<Fetcher, "file">): Promise<ReexecSpec> {
   if (!/^(https|ipfs):\/\//.test(uri)) throw new Error(`spec URI must be https or ipfs: ${uri}`);
@@ -246,13 +252,37 @@ export async function decideOrFail(
   committedSpecHash: `0x${string}`,
   deliverable: `0x${string}`,
 ): Promise<Decision | null> {
+  const margin = deps.failureVoteMargin ?? FAILURE_VOTE_MARGIN;
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadlineHit = { value: false };
   try {
     if (!spec) throw new Error("no spec matching the job's specHash is available");
-    return await decide(spec, committedSpecHash, deliverable, deps.exec);
+    // A deadline for the whole job, so a slow or silent input server cannot hold the keeper past
+    // the point where it can still vote (security report 2026-11-20): until FAILURE_VOTE_MARGIN
+    // before the vote window ends, or JOB_DEADLINE_SECONDS while voting has not started.
+    const { timestamp: start } = await deps.client.getBlock();
+    const budget = voteEnds === 0n ? JOB_DEADLINE_SECONDS : voteEnds - margin - start;
+    if (budget <= 0n) throw new Error("no time left to re-execute before the vote deadline");
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => {
+          deadlineHit.value = true;
+          controller.abort();
+          reject(new Error(`re-execution did not finish within ${budget.toString()} s`));
+        },
+        Number(budget) * 1000,
+      );
+    });
+    return await Promise.race([
+      decide(spec, committedSpecHash, deliverable, { ...deps.exec, signal: controller.signal }),
+      deadline,
+    ]);
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
     const { timestamp } = await deps.client.getBlock();
-    if (voteEnds === 0n || timestamp + (deps.failureVoteMargin ?? FAILURE_VOTE_MARGIN) < voteEnds) {
+    // Past the job's deadline the keeper votes now: waiting would make it an absent member.
+    if (voteEnds === 0n || (!deadlineHit.value && timestamp + margin < voteEnds)) {
       (deps.log ?? (() => undefined))({ event: "execution-error", reason });
       return null;
     }
@@ -262,6 +292,9 @@ export async function decideOrFail(
       evidence: canonicalHash({ error: "re-execution failed", reason }),
       result: null,
     };
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
   }
 }
 

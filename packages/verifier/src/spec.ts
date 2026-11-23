@@ -159,6 +159,14 @@ function input(v: unknown, i: number): Input {
   throw new SpecError(`${what}.kind must be git or file`);
 }
 
+/**
+ * Most inputs and outputs a spec may declare. Every input is fetched before the run, each under
+ * its own deadline, so their number bounds how long a job can take before its vote (security
+ * report 2026-11-20); real jobs need a handful.
+ */
+export const MAX_INPUTS = 32;
+export const MAX_OUTPUTS = 64;
+
 /** Validates an untrusted spec and returns it typed. Unknown fields are refused. */
 export function parseSpec(raw: unknown): ReexecSpec {
   if (!isRecord(raw)) throw new SpecError("spec must be an object");
@@ -173,6 +181,7 @@ export function parseSpec(raw: unknown): ReexecSpec {
   }
 
   if (!Array.isArray(raw.inputs)) throw new SpecError("inputs must be an array");
+  if (raw.inputs.length > MAX_INPUTS) throw new SpecError(`at most ${MAX_INPUTS} inputs`);
   const inputs = raw.inputs.map(input);
   const paths = inputs.map((x) => x.path);
   for (const [i, p] of paths.entries()) {
@@ -204,6 +213,7 @@ export function parseSpec(raw: unknown): ReexecSpec {
   if (!Array.isArray(raw.outputs) || raw.outputs.length === 0) {
     throw new SpecError("outputs must be a non-empty array");
   }
+  if (raw.outputs.length > MAX_OUTPUTS) throw new SpecError(`at most ${MAX_OUTPUTS} outputs`);
   const outputs = raw.outputs.map((o, i) => checkPath(o, `outputs[${i}]`));
   if (new Set(outputs).size !== outputs.length) throw new SpecError("outputs must be distinct");
 

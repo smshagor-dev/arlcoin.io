@@ -153,3 +153,9 @@ spec to the submitted result. It does not show that a non-deterministic delivera
   rejected by honest validators, which protects the client and costs the provider the job.
 - The image's own contents are trusted as pinned by digest; the spec does not rebuild it.
 - Dependencies must be inside the image or the inputs: the job has no network.
+- A spec declares at most 32 inputs and 64 outputs. Each input download has its own deadline
+  (120 s for a file, 300 s for each git step), and the keeper gives the whole re-execution a
+  deadline too: it ends `FAILURE_VOTE_MARGIN` (300 s) before the vote window closes, or after
+  30 minutes while voting has not opened. A job that is still fetching or running then is
+  answered with a reject vote whose evidence names the failure, so a slow or silent input server
+  cannot make an honest validator miss its vote and lose its bond as an absent member.
