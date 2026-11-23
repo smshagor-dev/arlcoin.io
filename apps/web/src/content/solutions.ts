@@ -111,7 +111,7 @@ export const SOLUTIONS: readonly Solution[] = [
     status: [
       "The jobs escrow (ERC-8183) and the verified evaluator are live on Base Mainnet, paid in ARL or USDC.",
       "The first verified job settled on Base Mainnet with real funds; every step is public with its block and transaction.",
-      "Any staked account can validate. The first independent validators are being invited.",
+      "Any staked account can validate. The first five independent validators earn 250 ARL a month for three months from December 2026.",
     ],
     faq: [
       {
