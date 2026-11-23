@@ -29,6 +29,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import {
   acceptJob,
   execute,
+  executeAndVoteMeteredJob,
   FileMeteringReplayStore,
   readPinnedMeteringArtifact,
   parseSpec,
@@ -376,6 +377,25 @@ describe("metered votes against the real local evaluator", () => {
           }),
         { code: "SIGNER_MISMATCH" },
       );
+      let invalidReceiptExecutions = 0;
+      const forbiddenRunner: ContainerRunner = {
+        async run() {
+          invalidReceiptExecutions++;
+          throw new Error("untrusted receipt should never start a container");
+        },
+      };
+      await assert.rejects(
+        () =>
+          executeAndVoteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: unauthorized,
+            replay: firstStore,
+            execution: { ...execOptions, runner: forbiddenRunner },
+          }),
+        { code: "SIGNER_MISMATCH" },
+      );
+      assert.equal(invalidReceiptExecutions, 0, "preflight must precede re-execution");
       const historicalTime = Math.floor(Date.now() / 1000) - 3_600;
       const expired = await signMeteringReceipt(
         {
@@ -406,20 +426,27 @@ describe("metered votes against the real local evaluator", () => {
         }),
         { code: "REGISTRATION_UNAVAILABLE" },
       );
-      const first = await voteMeteredJob({
-        ...common, wallet: wallet(v1), receipt: delivered, replay: firstStore,
+      const first = await executeAndVoteMeteredJob({
+        ...common,
+        wallet: wallet(v1),
+        receipt: delivered,
+        replay: firstStore,
+        execution: execOptions,
       });
-      const second = await voteMeteredJob({
+      const second = await executeAndVoteMeteredJob({
         ...common,
         wallet: wallet(v2),
         receipt: delivered,
         replay: new FileMeteringReplayStore(directory, v2.address),
+        execution: execOptions,
       });
+      assert.equal(first.execution.hash, providerRun.hash);
+      assert.equal(second.execution.hash, providerRun.hash);
       assert.equal(first.evidenceHash, second.evidenceHash);
       const { expectedSigner } = await resolveMeterSigner(rpc, registration);
       const audited = await verifyMeteredEvidence({
         spec: SPEC,
-        result: independent.result,
+        result: first.execution.result,
         receipt: delivered,
         context: {
           chainId: 31337,
