@@ -1,6 +1,5 @@
-// arl-metering-vote/1 is a versioned, off-chain composite committed through the existing
-// ARLVerifiedEvaluator.vote(..., bytes32 evidence). No Solidity change is required.
-// This builder must not be called for an unverified receipt or an unaccepted re-execution.
+// arl-metering-vote/1 commits an independently checked result hash and a signed receipt hash
+// through ARLVerifiedEvaluator.vote(..., bytes32 evidence). No contract change is required.
 
 import type { Hex } from "viem";
 
@@ -12,6 +11,7 @@ import {
   verifyMeteringReceipt,
   type MeteringVerificationContext,
   type SignedMeteringReceipt,
+  type VerifiedMeteringReceipt,
 } from "./receipt.ts";
 import type { MeteringReplayStore } from "./replay.ts";
 
@@ -23,12 +23,16 @@ export interface MeteringVoteEvidence {
   receipt_hash: Hex;
 }
 
-export interface MeteredApprovalInput {
+export interface MeteredEvidenceInput {
   spec: ReexecSpec;
   result: ResultManifest;
   receipt: SignedMeteringReceipt;
+  /** The expected signer MUST come from independent authenticated registration. */
   context: MeteringVerificationContext;
-  /** Provisional, explicitly configured per-job durable replay policy. */
+}
+
+export interface MeteredApprovalInput extends MeteredEvidenceInput {
+  /** Provisional, explicitly configured per-validator durable replay policy. */
   replay: MeteringReplayStore;
 }
 
@@ -37,15 +41,9 @@ export interface MeteredApproval {
   evidenceHash: Hex;
 }
 
-/**
- * Commit exactly two independently obtained values:
- * - result_hash computed from the validator's own result manifest;
- * - receipt_hash computed after authorized signature verification.
- *
- * Once this returns, a validator may submit evidenceHash as the existing vote evidence
- * with approve=true. Do not call this during a failed or skipped re-execution.
- */
-export async function buildMeteredApproval(input: MeteredApprovalInput): Promise<MeteredApproval> {
+async function calculateEvidence(
+  input: MeteredEvidenceInput,
+): Promise<{ approval: MeteredApproval; verified: VerifiedMeteringReceipt }> {
   const committedSpecHash = specHash(input.spec);
   if (committedSpecHash !== input.context.specHash) {
     throw new MeteringReceiptError("SPEC_MISMATCH", "job spec commitment does not match");
@@ -68,12 +66,47 @@ export async function buildMeteredApproval(input: MeteredApprovalInput): Promise
     );
   }
   const verified = await verifyMeteringReceipt(input.receipt, input.context);
-  await input.replay.consume(verified);
-
   const composite: MeteringVoteEvidence = {
     version: METERING_VOTE_VERSION,
     result_hash: computedResultHash,
     receipt_hash: verified.receiptHash,
   };
-  return { composite, evidenceHash: canonicalHash(composite) };
+  return {
+    approval: { composite, evidenceHash: canonicalHash(composite) },
+    verified,
+  };
+}
+
+/**
+ * Independent, read-only verifier for an observed on-chain evidence hash.
+ *
+ * No durable replay state is consumed and no transaction is sent. The caller must obtain
+ * expectedSigner from an authenticated provider registration, and independently obtain the
+ * re-execution ResultManifest. This verifies hash bindings and signature authenticity
+ * under trusted-host assumptions; it is not hardware usage attestation.
+ */
+export async function verifyMeteredEvidence(
+  input: MeteredEvidenceInput & { expectedEvidenceHash: Hex },
+): Promise<MeteredApproval> {
+  if (!/^0x[0-9a-f]{64}$/.test(input.expectedEvidenceHash)) {
+    throw new MeteringReceiptError("COMPOSITE_HASH_MISMATCH", "evidence must be lowercase bytes32");
+  }
+  const { approval } = await calculateEvidence(input);
+  if (approval.evidenceHash !== input.expectedEvidenceHash) {
+    throw new MeteringReceiptError(
+      "COMPOSITE_HASH_MISMATCH",
+      "on-chain vote evidence differs from verified result and signed receipt",
+    );
+  }
+  return approval;
+}
+
+/**
+ * Assemble an approval for a future vote, reserving replay state only AFTER all signature
+ * and result checks succeed. The caller still must confirm the current job's vote eligibility.
+ */
+export async function buildMeteredApproval(input: MeteredApprovalInput): Promise<MeteredApproval> {
+  const { approval, verified } = await calculateEvidence(input);
+  await input.replay.consume(verified);
+  return approval;
 }
