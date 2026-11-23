@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { constants, readFileSync } from "node:fs";
-import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -10,6 +10,7 @@ import type { Hex } from "viem";
 
 import {
   MAX_SIGNED_METERING_ARTIFACT_BYTES,
+  publishSignedMeteringArtifact,
   readPinnedMeteringArtifact,
 } from "../src/metering/artifact.ts";
 import { verifyMeteringReceipt, type MeteringReceipt } from "../src/metering/receipt.ts";
@@ -39,7 +40,7 @@ const supportsNoFollow =
 describe("bounded pinned local receipt artifact transport", {
   skip: !supportsNoFollow && "requires O_NOFOLLOW filesystem support",
 }, () => {
-  it("loads an exactly pinned signed receipt and permits independent EIP-712 verification", async () => {
+  it("loads a pinned signed receipt and verifies EIP-712", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-artifact-"));
     try {
       const path = join(directory, "receipt.json");
@@ -59,6 +60,53 @@ describe("bounded pinned local receipt artifact transport", {
         expectedSigner: vectors.valid.expected_signer,
       });
       assert.equal(verified.receipt.job_id, receipt.job_id);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("atomically publishes a private complete artifact and refuses overwrites", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "arl-meter-publish-"));
+    try {
+      const destination = join(directory, "receipt.json");
+      const publication = await publishSignedMeteringArtifact(destination, envelope);
+      const imported = await readPinnedMeteringArtifact(destination, publication.sha256);
+      assert.deepEqual(imported.signed, envelope);
+      assert.equal(publication.byteLength, (await stat(destination)).size);
+      if (process.platform !== "win32") {
+        assert.equal((await stat(destination)).mode & 0o777, 0o600);
+      }
+
+      await assert.rejects(
+        () => publishSignedMeteringArtifact(destination, envelope),
+        { code: "METER_ARTIFACT_UNAVAILABLE" },
+      );
+      assert.deepEqual(await readdir(directory), ["receipt.json"]);
+      assert.equal(
+        (await readPinnedMeteringArtifact(destination, publication.sha256)).sha256,
+        publication.sha256,
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("publishes once even when two writers compete for the same output path", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "arl-meter-concurrent-"));
+    try {
+      const destination = join(directory, "receipt.json");
+      const [first, second] = await Promise.allSettled([
+        publishSignedMeteringArtifact(destination, envelope),
+        publishSignedMeteringArtifact(destination, envelope),
+      ]);
+      const attempts = [first, second];
+      assert.equal(attempts.filter((x) => x.status === "fulfilled").length, 1);
+      assert.equal(attempts.filter((x) => x.status === "rejected").length, 1);
+      assert.deepEqual(await readdir(directory), ["receipt.json"]);
+      const succeeded = attempts.find((x) => x.status === "fulfilled");
+      assert.ok(succeeded && succeeded.status === "fulfilled");
+      const read = await readPinnedMeteringArtifact(destination, succeeded.value.sha256);
+      assert.equal(read.signed.receipt.job_id, envelope.receipt.job_id);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -108,7 +156,7 @@ describe("bounded pinned local receipt artifact transport", {
     }
   });
 
-  it("rejects duplicate JSON keys and invalid UTF-8 even when the bytes are correctly pinned", async () => {
+  it("rejects invalid UTF-8 and duplicate JSON keys even with a matching pin", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-invalid-"));
     try {
       const path = join(directory, "receipt.json");
