@@ -92,7 +92,11 @@ describe("pinned historical ERC-8004 meter registration", () => {
 
   it("refuses a historical URI that differs from the independently pinned URI", async () => {
     await assert.rejects(
-      () => resolveMeterSigner(chain({ uri: "https://other.example.org/agent.json" }).client, snapshot()),
+      () =>
+        resolveMeterSigner(
+          chain({ uri: "https://other.example.org/agent.json" }).client,
+          snapshot(),
+        ),
       { code: "REGISTRATION_UNAVAILABLE" },
     );
   });
