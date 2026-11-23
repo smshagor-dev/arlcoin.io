@@ -246,6 +246,17 @@ export class MeteredDockerRunner implements ContainerRunner {
       if (tooLarge || pollFailure) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "job disk accounting failed");
       }
+      // A short-lived container can exit before the first one-second disk poll.
+      // Check the final work/output footprint even when no periodic poll ran.
+      const finalDiskBytes =
+        (await diskUsage(outDir, this.#maxDiskBytes)) +
+        (await diskUsage(workDir, this.#maxDiskBytes));
+      if (finalDiskBytes > this.#maxDiskBytes) {
+        throw new MeteringReceiptError(
+          "METER_RUNTIME_FAILURE",
+          "job exceeded its final work/output disk budget",
+        );
+      }
       if (timedOut) return { exitCode: null, timedOut: true };
       if (!EXIT_CODE.test(status) || Number(status) > 255) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "invalid Docker exit status");
