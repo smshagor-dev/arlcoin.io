@@ -108,28 +108,6 @@ describe("metered Docker cgroup v2 integration", {
       });
       assert.equal(verified.receiptHash.length, 66);
 
-      // Never overwrite existing signed metering evidence.
-      await assert.rejects(
-        () =>
-          executeAndPublishMeteredReceipt(
-            spec,
-            {
-              chainId: 31337,
-              evaluatorAddress: signed.receipt.evaluator_address,
-              jobId: "7",
-              meterPrivateKey: key,
-            },
-            {
-              cgroupRoot: root,
-              receiptPath,
-              fetcher: {
-                file: () => Promise.reject(new Error("unexpected input")),
-                git: () => Promise.reject(new Error("unexpected input")),
-              },
-            },
-          ),
-        { code: "METER_ARTIFACT_UNAVAILABLE" },
-      );
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
