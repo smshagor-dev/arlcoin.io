@@ -83,6 +83,13 @@ Run normal checks:
     npm run lint
     npm run format:check
 
+The metered runner forwards its abort signal into the Docker pull, detached
+start, inspect and wait commands. Cancellation terminates an in-progress
+Docker CLI subprocess and the runner still attempts named-container and
+cgroup-parent cleanup in its fail-closed finalizer. The gated Docker test
+includes an interrupted long-running job and verifies that no signed receipt
+artifact is published.
+
 For the gated real-Docker integration test on a preconfigured supported Linux host:
 
     ARL_METERING_CGROUP_ROOT=/sys/fs/cgroup/arl-metering npm run test:docker -w @arl/verifier
