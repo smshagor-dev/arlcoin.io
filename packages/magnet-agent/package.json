@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@arl/sdk": "0.4.0",
+    "@arl/sdk": "0.4.1",
     "@arl/verifier": "0.1.0",
     "viem": "2.56.9"
   },

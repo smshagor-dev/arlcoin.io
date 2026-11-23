@@ -4,6 +4,10 @@ Notable changes to ARL Protocol, newest first. Dates are UTC. Every entry links 
 documents that back it. What is deployed on Base Mainnet is recorded in
 [docs/mainnet-services.md](docs/mainnet-services.md) and `contracts/deploy/`.
 
+## 2026-11-23
+
+- npm: `arl-protocol-sdk` 0.4.1 with the verified-job bond fix (`openVerifiedJob` defaults the committee bond to the evaluator's own minimum and refuses a lower one).
+
 ## 2026-11-22
 
 - Buyer agent, ready to switch on: a scheduled workflow runs it ([magnet-agent.yml](.github/workflows/magnet-agent.yml)), each run reads only new blocks ([history.ts](packages/magnet-agent/src/history.ts)), team wallets and Safes are never paid ([excluded.ts](packages/magnet-agent/src/excluded.ts)), and the one Safe transaction that grants its allowance is built and rehearsed through the real Ecosystem & Growth Safe on a Base Mainnet fork with two owner approvals ([safe-batch.ts](packages/magnet-agent/fork/safe-batch.ts)). It does nothing until the owners set its key and sign the allowance.
