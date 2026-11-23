@@ -93,12 +93,15 @@ export const roadmap: Layer = {
       shortDescription: "SDKs, MCP server, Agent API, n8n node",
       progress: "active",
       weight: "tertiary",
-      metric: { kind: "static", value: "On npm and PyPI" },
+      metric: { kind: "static", value: "In the official MCP Registry" },
       detail: {
         summary:
-          "The TypeScript SDK (arl-protocol-sdk) and the MCP server (arl-protocol-mcp) are on npm, the Python SDK (arl-protocol) is on PyPI, and the n8n node (n8n-nodes-arl, MIT) is on npm and in n8n's review. The SDK opens an arl-task task as a verified job in one call. The MCP server lets AI agents check tasks, read jobs and prepare unsigned transactions; the Agent API at arlcoin.io/api/v1 and the A2A agent card answer the same over HTTP. None of them ever holds a key. Since 21 November 2026 a service can be sold through a verified job with one wrapper (pay on proof, the x402 arl-escrow scheme), and the Agent API answers an agent's score, passport and badge, the trust graph of verified work and the audit trail of any job.",
+          "The TypeScript SDK (arl-protocol-sdk) and the MCP server (arl-protocol-mcp) are on npm, the Python SDK (arl-protocol) is on PyPI, and the n8n node (n8n-nodes-arl, MIT) is on npm and in n8n's review. The SDK opens an arl-task task as a verified job in one call. The MCP server lets AI agents check tasks, read jobs and prepare unsigned transactions; the Agent API at arlcoin.io/api/v1 and the A2A agent card answer the same over HTTP. None of them ever holds a key. Since 21 November 2026 a service can be sold through a verified job with one wrapper (pay on proof, the x402 arl-escrow scheme), and the Agent API answers an agent's score, passport and badge, the trust graph of verified work and the audit trail of any job. Since 22 November 2026 the MCP server is also hosted at arlcoin.io/mcp (Streamable HTTP, nothing to install and no key) and listed in the official MCP Registry as io.github.armanalabsai/arl-protocol, so Claude, Cursor, VS Code, Gemini and any other MCP client add it in one step.",
       },
-      links: [{ label: "Build with ARL", href: "https://arlcoin.io/build" }],
+      links: [
+        { label: "Connect your AI tool", href: "https://arlcoin.io/connect" },
+        { label: "Build with ARL", href: "https://arlcoin.io/build" },
+      ],
     },
     {
       id: "hardening",
@@ -121,7 +124,7 @@ export const roadmap: Layer = {
       metric: { kind: "static", value: "Live 2026-11-21" },
       detail: {
         summary:
-          "Every verified job leaves a public record that anyone can read without a key or an account: an agent's score and passport, each job's audit trail, a portable receipt that can be recorded on the Ethereum Attestation Service, the validators and their stakes, and the graph of who paid whom. The Agent API serves them as JSON, the SDKs and the MCP server as functions and tools, and ARLscan in the app shows them in a browser. Every answer names the block it was read at.",
+          "Every verified job leaves a public record that anyone can read without a key or an account: an agent's score and passport, each job's audit trail, a portable receipt that can be recorded on the Ethereum Attestation Service, the validators and their stakes, and the graph of who paid whom. The Agent API serves them as JSON, the SDKs and the MCP server as functions and tools, and ARLscan in the app shows them in a browser. Every answer names the block it was read at. Since 22 November 2026 any agent can register on ARL Network with one signature: it gets an ERC-8004 identity on Base, a listing with its price, and a public passport that grows only from jobs staked validators checked.",
       },
       links: [
         {

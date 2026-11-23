@@ -62,6 +62,7 @@ export const repoDoc = (path: string): `/${string}` => docPathFor(path);
 export const SITE_PAGES = [
   "/whitelist",
   "/build",
+  "/connect",
   "/business",
   "/buy",
   "/faq",

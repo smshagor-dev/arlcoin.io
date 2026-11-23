@@ -2,7 +2,10 @@
 // through an interface that ARL publishes (the MCP server, the A2A agent card, the SDKs, the
 // HTTP Agent API, the n8n node). A model without native MCP support is listed under the Agent API,
 // which any model that can call an HTTP tool reaches. Icons are from Simple Icons (CC0); the xAI mark is from Lobe Icons (MIT). Pure SVG and CSS
-// (globals.css, .agent-net): no script, and the pulses stop under reduced motion.
+// (globals.css, .agent-net): no script, and the pulses stop under reduced motion. Every node is a
+// link to that tool's one-click way in on /connect (src/content/connect.ts).
+
+import { CONNECT } from "@/content/connect.ts";
 
 const ITEMS = [
   {
@@ -87,8 +90,11 @@ const RY = 215;
 
 const NODES = ITEMS.map((n, i) => {
   const a = (2 * Math.PI * i) / ITEMS.length;
+  const target = CONNECT.find((c) => c.label === n.label);
+  if (!target) throw new Error(`no connect entry for ${n.label}`);
   return {
     ...n,
+    href: `/connect#${target.id}`,
     x: Math.round((CX + RX * Math.sin(a)) * 10) / 10,
     y: Math.round((CY - RY * Math.cos(a)) * 10) / 10,
   };
@@ -135,8 +141,16 @@ export function AgentNetwork() {
           <circle className="agent-net-halo" cx={CX} cy={CY} r="96" fill="url(#agent-net-core)" />
           <circle cx={CX} cy={CY} r="54" fill="#0a1226" stroke="#f2c56b" strokeWidth="1.5" />
           <image href="/arl-mark.svg" x={CX - 38} y={CY - 38} width="76" height="76" />
-          {NODES.map((n, i) => (
-            <g key={n.label} transform={`translate(${String(n.x)} ${String(n.y)})`}>
+        </g>
+        {NODES.map((n, i) => (
+          <a
+            key={n.label}
+            href={n.href}
+            className="agent-net-hit"
+            aria-label={`Connect ${n.label} to ARL (${n.via})`}
+          >
+            <g transform={`translate(${String(n.x)} ${String(n.y)})`}>
+              <circle className="agent-net-target" r="44" />
               <circle
                 className="agent-net-node"
                 r="30"
@@ -150,8 +164,8 @@ export function AgentNetwork() {
                 {n.via}
               </text>
             </g>
-          ))}
-        </g>
+          </a>
+        ))}
       </svg>
     </figure>
   );

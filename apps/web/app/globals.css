@@ -930,7 +930,7 @@
 }
 
 /* Where ARL is today: one framed tile per phase. A finished phase is lit in dollar green; a
-   phase under way blinks in the gold of the palette. The dot and the state line follow. */
+   phase under way blinks in neon blue. The dot and the state line follow. */
 .landing-road {
   display: grid;
   grid-template-columns: 1fr;
@@ -966,28 +966,32 @@
   color: #a9d68c;
 }
 .landing-road li[data-progress="active"] {
-  border-color: var(--color-accent);
+  border-color: #2ea8ff;
   animation: road-frame 1.6s ease-in-out infinite;
 }
 .landing-road li[data-progress="active"]::before {
-  background: var(--color-accent);
-  box-shadow: 0 0 8px rgb(217 183 122 / 0.8);
+  background: #5cc2ff;
+  box-shadow:
+    0 0 6px #2ea8ff,
+    0 0 14px rgb(46 168 255 / 0.9);
   animation: road-blink 1.6s ease-in-out infinite;
 }
 .landing-road li[data-progress="active"] .road-state {
-  color: var(--color-accent);
+  color: #7fd0ff;
+  text-shadow: 0 0 6px rgb(46 168 255 / 0.8);
 }
 @keyframes road-frame {
   0%,
   100% {
-    border-color: var(--color-accent);
+    border-color: #2ea8ff;
     box-shadow:
-      0 0 12px rgb(217 183 122 / 0.55),
-      inset 0 0 12px rgb(217 183 122 / 0.1);
+      0 0 6px rgb(46 168 255 / 0.9),
+      0 0 18px rgb(46 168 255 / 0.6),
+      inset 0 0 14px rgb(46 168 255 / 0.18);
   }
   55% {
-    border-color: rgb(217 183 122 / 0.32);
-    box-shadow: 0 0 0 rgb(217 183 122 / 0);
+    border-color: rgb(46 168 255 / 0.3);
+    box-shadow: 0 0 0 rgb(46 168 255 / 0);
   }
 }
 @keyframes road-blink {
@@ -1005,7 +1009,7 @@
     animation: none;
   }
   .landing-road li[data-progress="active"] {
-    box-shadow: 0 0 10px rgb(217 183 122 / 0.4);
+    box-shadow: 0 0 10px rgb(46 168 255 / 0.5);
   }
 }
 @media (min-width: 640px) {
@@ -1393,6 +1397,25 @@ html.lenis body {
   fill: #0d1830;
   stroke-width: 1.5;
   animation: agent-net-node 3.7s ease-in-out infinite;
+}
+/* Each tool is a link to its one-click way in (/connect). A wider transparent target makes it
+   easy to tap on a phone; the node lights up on hover and keyboard focus. */
+.agent-net-hit {
+  cursor: pointer;
+  outline: none;
+}
+.agent-net-target {
+  fill: transparent;
+}
+.agent-net-hit:hover .agent-net-node,
+.agent-net-hit:focus-visible .agent-net-node {
+  stroke-opacity: 1;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 10px rgb(242 197 107 / 0.9));
+}
+.agent-net-hit:hover .agent-net-label,
+.agent-net-hit:focus-visible .agent-net-label {
+  fill: var(--color-accent);
 }
 .agent-net-halo {
   animation: agent-net-halo 3.7s ease-in-out infinite;

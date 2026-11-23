@@ -29,7 +29,14 @@ export function Header() {
   return (
     <header className="glass-bar sticky top-0 z-20">
       <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+        {/* The logo leads to the arlcoin.io home page, which is outside this app (served under
+            /app), so it is a plain link and not a router link. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- the site, not an app page */}
+        <a
+          href="/"
+          aria-label="ARL home page"
+          className="flex items-center gap-2 text-sm font-semibold tracking-tight"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/icon.svg`}
@@ -38,7 +45,7 @@ export function Header() {
             height={24}
           />
           <span>ARL App</span>
-        </Link>
+        </a>
         <nav className="ml-2 hidden gap-1 sm:flex" aria-label="Main">
           {NAV.map((item) => (
             <Link
