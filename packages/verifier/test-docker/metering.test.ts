@@ -16,7 +16,8 @@ import { execute } from "../src/verify.ts";
 import { parseSpec, specHash } from "../src/spec.ts";
 
 const BUSYBOX =
-  "docker.io/library/busybox@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e";
+  "docker.io/library/busybox@sha256:" +
+  "bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e";
 const root = process.env.ARL_METERING_CGROUP_ROOT;
 
 function supported(): boolean {
@@ -50,7 +51,9 @@ function job(command: string) {
   });
 }
 
-describe("metered Docker cgroup v2 integration", { skip: !ready && "requires delegated cgroup v2 + cgroupfs" }, () => {
+describe("metered Docker cgroup v2 integration", {
+  skip: !ready && "requires delegated cgroup v2 + cgroupfs",
+}, () => {
   it("measures real CPU load and peak memory then verifies its signed receipt", async () => {
     assert.ok(root);
     const spec = job(
