@@ -47,6 +47,9 @@ export async function readPinnedMeteringArtifact(
   ) {
     return artifactError("file path or authenticated content digest is invalid");
   }
+  if (!Number.isSafeInteger(constants.O_NOFOLLOW) || constants.O_NOFOLLOW === 0) {
+    return artifactError("local file transport requires O_NOFOLLOW support");
+  }
   const flags = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
   let file;
   try {
