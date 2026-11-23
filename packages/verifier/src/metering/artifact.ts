@@ -143,7 +143,6 @@ export async function publishSignedMeteringArtifact(
   const parent = dirname(destination);
   const temporary = destination + "." + randomBytes(12).toString("hex") + ".tmp";
   let file;
-  let linked = false;
   try {
     // The output directory must be provisioned and trusted by the host operator.
     // O_CREAT | O_EXCL denies existing file/symlink replacement.
@@ -153,7 +152,9 @@ export async function publishSignedMeteringArtifact(
     await file.close();
     file = undefined;
     await link(temporary, destination);
-    linked = true;
+    // Remove the temporary link before syncing the parent directory: after
+    // success only the final, complete receipt name remains durable.
+    await unlink(temporary);
     const dir = await open(parent, "r");
     try {
       await dir.sync();
@@ -170,10 +171,7 @@ export async function publishSignedMeteringArtifact(
   } finally {
     if (file !== undefined) await file.close().catch(() => undefined);
     await unlink(temporary).catch(() => undefined);
-    // If fsync failed after the atomic link, leave the complete published file
-    // in place rather than risk deleting evidence another process has observed.
-    if (linked) {
-      // Intentional no-op: the caller receives an error and must reconcile.
-    }
+    // Never unlink the final destination on error: once exposed it may have
+    // been observed by another process and requires operator reconciliation.
   }
 }
