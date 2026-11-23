@@ -89,6 +89,16 @@ async function preflightMeteredJob(input: PreflightInput): Promise<{
       "metered job must be submitted and validator must have accepted",
     );
   }
+  const { timestamp: chainTimestamp } = await input.client.getBlock();
+  if (
+    chainTimestamp >= job.expiredAt ||
+    (job.voteEnds !== 0n && chainTimestamp >= job.voteEnds)
+  ) {
+    throw new MeteringReceiptError(
+      "JOB_NOT_VOTABLE",
+      "job deadline or validator vote window has passed",
+    );
+  }
   const committed = specHash(input.spec);
   if (committed !== job.specHash) {
     throw new MeteringReceiptError("SPEC_MISMATCH", "spec differs from the on-chain commitment");
