@@ -1,7 +1,7 @@
 // Adapted from Scaffold-ETH 2 (MIT, BuidlGuidl): packages/nextjs/services/web3/wagmiConnectors.tsx.
 // ARL: the common Base wallets (Coinbase Wallet, MetaMask, Rabby, Rainbow, Trust, OKX, Phantom)
 // plus any other browser wallet (EIP-6963 / injected). Mobile wallets connect through
-// WalletConnect only when NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is set (a free Reown project id);
+// WalletConnect when NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is set (scripts/build-site.sh sets ARL's id);
 // there is no burner wallet that keeps a private key in the browser. The Anvil development
 // account is offered on the local chain.
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
@@ -47,7 +47,11 @@ export const wagmiConnectors = () => {
       ...(onlyLocal ? [{ groupName: "Local development", wallets: [localDevWallet] }] : []),
     ],
     {
+      // What a wallet shows when it asks to connect (WalletConnect metadata).
       appName: "ARL",
+      appDescription: "Escrow and verification for AI agents on Base",
+      appUrl: "https://arlcoin.io",
+      appIcon: "https://arlcoin.io/arl-logo-1024.png",
       // Without a project id, wallets that need the WalletConnect relay fall back to their
       // browser extension; the placeholder is never sent to a relay.
       projectId: walletConnectProjectId || "arl-no-walletconnect",

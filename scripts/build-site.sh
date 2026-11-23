@@ -31,6 +31,9 @@ rm -rf out .next
 # records). ARL_APP_CHAIN=31337 builds it against the local chain instead.
 CHAIN_ENV=("NEXT_PUBLIC_ARL_CHAIN=${ARL_APP_CHAIN:-8453}")
 CHAIN_ENV+=(NEXT_PUBLIC_ARL_MAINNET_TOKEN=0xde91E6f39D50bBd875f831dcc1134A3D7f3aaDb4)
+# WalletConnect (Reown project "ARL"): lets phone wallets connect from a normal browser. The id
+# is public by design (it ships in the page); WALLETCONNECT_PROJECT_ID overrides it.
+CHAIN_ENV+=("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${WALLETCONNECT_PROJECT_ID:-b7b4b97c8e687813c2b7fdafb276a2bc}")
 env ${CHAIN_ENV[@]+"${CHAIN_ENV[@]}"} MSYS2_ENV_CONV_EXCL=ARL_BASE_PATH ARL_STATIC_EXPORT=1 ARL_BASE_PATH=/app npm run build
 
 mkdir -p "$STAGE/apps/web"
