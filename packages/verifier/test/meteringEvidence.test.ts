@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -7,7 +7,11 @@ import { describe, it } from "node:test";
 import { keccak256, stringToBytes, type Address, type Hex } from "viem";
 
 import { canonicalHash } from "../src/canonical.ts";
-import { buildMeteredApproval, METERING_VOTE_VERSION } from "../src/metering/evidence.ts";
+import {
+  buildMeteredApproval,
+  METERING_VOTE_VERSION,
+  verifyMeteredEvidence,
+} from "../src/metering/evidence.ts";
 import { FileMeteringReplayStore } from "../src/metering/replay.ts";
 import {
   signMeteringReceipt,
@@ -75,6 +79,65 @@ function contextFor(manifest: ResultManifest): MeteringVerificationContext {
 }
 
 describe("arl-metering-vote/1 evidence construction", () => {
+  it("independently verifies a submitted evidence hash without consuming replay state", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "arl-meter-audit-"));
+    try {
+      const receipt = await signMeteringReceipt(receiptFor(result), key);
+      const expectedEvidenceHash = canonicalHash({
+        version: METERING_VOTE_VERSION,
+        result_hash: resultHash(result),
+        receipt_hash: canonicalHash(receipt.receipt),
+      });
+      const input = {
+        spec,
+        result,
+        receipt,
+        context: contextFor(result),
+      };
+      const audit = await verifyMeteredEvidence({ ...input, expectedEvidenceHash });
+      assert.equal(audit.evidenceHash, expectedEvidenceHash);
+      assert.deepEqual(await readdir(directory), [], "read-only audit must not consume replay");
+
+      await assert.rejects(
+        () =>
+          verifyMeteredEvidence({
+            ...input,
+            expectedEvidenceHash: ("0x" + "99".repeat(32)) as Hex,
+          }),
+        { code: "COMPOSITE_HASH_MISMATCH" },
+      );
+      await assert.rejects(
+        () =>
+          verifyMeteredEvidence({
+            ...input,
+            receipt: {
+              ...receipt,
+              receipt: { ...receipt.receipt, cpu_time_ns: receipt.receipt.cpu_time_ns + 1 },
+            },
+            expectedEvidenceHash,
+          }),
+        { code: "SIGNER_MISMATCH" },
+      );
+      await assert.rejects(
+        () =>
+          verifyMeteredEvidence({
+            ...input,
+            expectedEvidenceHash: "invalid" as Hex,
+          }),
+        { code: "COMPOSITE_HASH_MISMATCH" },
+      );
+      const replay = new FileMeteringReplayStore(
+        directory,
+        "0x9999999999999999999999999999999999999999",
+      );
+      const vote = await buildMeteredApproval({ ...input, replay });
+      assert.equal(vote.evidenceHash, audit.evidenceHash);
+      assert.equal((await readdir(directory)).length, 1);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("commits independent validator result and authenticated meter receipt", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-vote-"));
     try {
