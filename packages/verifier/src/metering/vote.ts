@@ -1,24 +1,20 @@
-// Opt-in, fail-closed metered vote. This does not change the legacy validator watcher.
-// Metering is approved only after checking live chain state and a historically pinned
-// ERC-8004 provider registration; the validator never handles the provider meter key.
+// Opt-in, fail-closed metered vote. The production watcher is unchanged.
+// An authenticated provider meter receipt is bound to the validator's own re-execution.
 
 import type { Hex, PublicClient } from "viem";
 
-import {
-  castVote,
-  JobStatus,
-  MemberState,
-  Phase,
-  readJob,
-} from "../chain.ts";
+import { castVote, JobStatus, MemberState, Phase, readJob } from "../chain.ts";
 import type { ResultManifest } from "../result.ts";
-import type { ReexecSpec } from "../spec.ts";
+import { specHash, type ReexecSpec } from "../spec.ts";
+import { execute, type ExecuteOptions, type Execution } from "../verify.ts";
 import { buildMeteredApproval, type MeteredApproval } from "./evidence.ts";
-import { MeteringReceiptError, type SignedMeteringReceipt } from "./receipt.ts";
 import {
-  resolveMeterSigner,
-  type MeterRegistrationSnapshot,
-} from "./registration.ts";
+  MeteringReceiptError,
+  verifyMeteringReceipt,
+  type MeteringVerificationContext,
+  type SignedMeteringReceipt,
+} from "./receipt.ts";
+import { resolveMeterSigner, type MeterRegistrationSnapshot } from "./registration.ts";
 import type { MeteringReplayStore } from "./replay.ts";
 
 type ValidatorWallet = Parameters<typeof castVote>[0];
@@ -29,14 +25,13 @@ export interface MeteredJobVoteInput {
   wallet: ValidatorWallet;
   evaluator: Evaluator;
   jobId: bigint;
-  /** The validator's own re-execution result, not a provider-supplied result. */
+  /** The validator's own re-execution result, never a provider result. */
   result: ResultManifest;
   spec: ReexecSpec;
   receipt: SignedMeteringReceipt;
-  /** Independent registration metadata bytes and trusted historical content pin. */
   registration: MeterRegistrationSnapshot;
   replay: MeteringReplayStore;
-  /** Explicit mandatory freshness window for authorization; no implicit unlimited age. */
+  /** Mandatory freshness bound, in seconds. */
   maxReceiptAgeSeconds: number;
   maxFutureSkewSeconds?: number;
 }
@@ -45,17 +40,28 @@ export interface MeteredJobVoteResult extends MeteredApproval {
   transactionHash: Hex;
 }
 
+export interface ExecuteAndVoteMeteredJobInput extends Omit<MeteredJobVoteInput, "result"> {
+  /** A real validator must configure an isolated trusted ContainerRunner. */
+  execution: ExecuteOptions;
+}
+
+export interface ExecutedMeteredJobVote extends MeteredJobVoteResult {
+  execution: Execution;
+}
+
+type PreflightInput = Omit<MeteredJobVoteInput, "result" | "replay">;
+
 /**
- * Submit an APPROVE vote only after:
- * 1. Reading the live submitted job and accepted validator committee state;
- * 2. Authenticated historical provider meter registration;
- * 3. Independent result acceptance, signed receipt binding and replay reservation.
+ * Reject an invalid job, wrong committed spec, expired or forged meter receipt before
+ * spending resources on the validator's own re-execution or reserving replay state.
  *
- * A failed transaction deliberately leaves the durable replay reservation in place.
- * Operator reconciliation must inspect the chain before attempting another vote.
- * Existing non-metered watcher behavior remains unchanged.
+ * The registration snapshot's authority remains a separate upstream protocol decision:
+ * do not treat an untrusted caller-selected snapshot SHA-256 as an authorization.
  */
-export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<MeteredJobVoteResult> {
+async function preflightMeteredJob(input: PreflightInput): Promise<{
+  deliverable: Hex;
+  context: MeteringVerificationContext;
+}> {
   if (
     !Number.isSafeInteger(input.maxReceiptAgeSeconds) ||
     input.maxReceiptAgeSeconds <= 0
@@ -65,9 +71,13 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
       "a positive explicit receipt freshness window is mandatory",
     );
   }
-  const me = input.wallet.account.address;
-  const job = await readJob(input.client, input.evaluator, input.jobId, me);
 
+  const job = await readJob(
+    input.client,
+    input.evaluator,
+    input.jobId,
+    input.wallet.account.address,
+  );
   if (
     job.status !== JobStatus.Submitted ||
     job.phase !== Phase.Configured ||
@@ -76,8 +86,12 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
   ) {
     throw new MeteringReceiptError(
       "JOB_NOT_VOTABLE",
-      "metered job must be submitted with a validator that has accepted",
+      "metered job must be submitted and validator must have accepted",
     );
+  }
+  const committed = specHash(input.spec);
+  if (committed !== job.specHash) {
+    throw new MeteringReceiptError("SPEC_MISMATCH", "spec differs from the on-chain commitment");
   }
   if (
     input.registration.jobId !== input.jobId ||
@@ -90,9 +104,8 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
     );
   }
 
-  // Never use a self-claimed signer from the receipt, or an unpinned HTTPS file.
   const { expectedSigner } = await resolveMeterSigner(input.client, input.registration);
-  const context = {
+  const context: MeteringVerificationContext = {
     chainId: input.registration.chainId,
     evaluatorAddress: input.evaluator,
     jobId: input.jobId.toString(),
@@ -100,8 +113,8 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
     deliverableHash: job.deliverable,
     containerDigest: input.spec.container_digest,
     expectedSigner,
-    // The Docker start/wait interval includes host control-plane overhead.
-    // This bounded allowance is not billed as container CPU time.
+    // The host observes Docker start/wait overhead, but the measured CPU time
+    // must still be bounded by the configured core count and time limit.
     maxElapsedNs: (input.spec.limits.seconds + 30) * 1_000_000_000,
     maxCpuTimeNs: (input.spec.limits.seconds + 30) * input.spec.limits.cpus * 1_000_000_000,
     maxMemoryBytes: input.spec.limits.memory_mb * 1024 * 1024 + 32 * 1024 * 1024,
@@ -109,6 +122,17 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
     maxReceiptAgeSeconds: input.maxReceiptAgeSeconds,
     maxFutureSkewSeconds: input.maxFutureSkewSeconds ?? 5,
   };
+  await verifyMeteringReceipt(input.receipt, context);
+  return { deliverable: job.deliverable, context };
+}
+
+/**
+ * Casts the existing vote ABI with the authenticated composite evidence hash.
+ * An unsuccessful transaction deliberately leaves a fail-closed replay marker
+ * that requires inspection of chain state before any operator reconciliation.
+ */
+export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<MeteredJobVoteResult> {
+  const { context, deliverable } = await preflightMeteredJob(input);
   const approval = await buildMeteredApproval({
     spec: input.spec,
     result: input.result,
@@ -116,17 +140,32 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
     context,
     replay: input.replay,
   });
-
-  // The existing ABI accepts an evidence bytes32. This is the composite hash;
-  // it is not the EIP-712 digest, the receipt hash, or a billable quantity.
   const transactionHash = await castVote(
     input.wallet,
     input.client,
     input.evaluator,
     input.jobId,
     true,
-    job.deliverable,
+    deliverable,
     approval.evidenceHash,
   );
   return { ...approval, transactionHash };
+}
+
+/**
+ * Full optional validator entrypoint: authenticate the job and signed receipt first,
+ * independently execute its pinned spec, then recheck on-chain eligibility before voting.
+ *
+ * Existing default watch/step behavior is left untouched. A metered receipt does not
+ * turn a synthetic or untrusted runner into physical resource attestation.
+ */
+export async function executeAndVoteMeteredJob(
+  input: ExecuteAndVoteMeteredJobInput,
+): Promise<ExecutedMeteredJobVote> {
+  const { execution: executionOptions, ...voteInput } = input;
+  await preflightMeteredJob(voteInput);
+  const executed = await execute(voteInput.spec, executionOptions);
+  executionOptions.signal?.throwIfAborted();
+  const vote = await voteMeteredJob({ ...voteInput, result: executed.result });
+  return { ...vote, execution: executed };
 }
