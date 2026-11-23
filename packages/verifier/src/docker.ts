@@ -10,14 +10,28 @@ import { join } from "node:path";
 
 import type { ReexecSpec } from "./spec.ts";
 
+export interface RunMetering {
+  /** Unix-second boundaries around the measured container lifecycle. */
+  started_at: number;
+  finished_at: number;
+  /** Monotonic elapsed nanoseconds, not billable duration. */
+  elapsed_ns: number;
+  /** Linux cgroup v2 cpu.stat usage_usec converted to nanoseconds. */
+  cpu_time_ns: number;
+  /** Linux cgroup v2 memory.peak, including descendant cgroups. */
+  memory_peak_bytes: number;
+}
+
 export interface RunStatus {
   exitCode: number | null;
   timedOut: boolean;
+  /** Present only after successful metered execution; absent for legacy DockerRunner. */
+  metering?: RunMetering;
 }
 
 export interface ContainerRunner {
   /** Runs `spec.command` with `workDir` at /work and `outDir` at /out. */
-  run(spec: ReexecSpec, workDir: string, outDir: string): Promise<RunStatus>;
+  run(spec: ReexecSpec, workDir: string, outDir: string, signal?: AbortSignal): Promise<RunStatus>;
 }
 
 /** The user the job runs as (nobody). */

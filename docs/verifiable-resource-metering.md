@@ -1,0 +1,55 @@
+# ARL Verifiable Resource Metering: reference Docker runtime
+
+This is in-progress trusted-host software metering for [Issue #329](https://github.com/armanalabsai/arlcoin.io/issues/329), not a hardware attestation protocol or an upstream-approved implementation.
+
+## Architecture and measurement
+
+The MeteredDockerRunner in packages/verifier/src/metering/runner.ts reuses the existing dockerRunArgs isolation policy (pinned image, no network, read-only root, unprivileged UID, limits and controlled mounts). It supports Linux cgroup v2 with Docker's cgroupfs driver and an operator-delegated cgroup root.
+
+A fresh per-run parent cgroup is created before running Docker. The detached Docker container is assigned beneath this parent with --cgroup-parent. The host reads the parent cpu.stat usage_usec and memory.peak after Docker exits but before removing the parent. These counters are hierarchical and cover the container's process tree. The container is not auto-removed; cleanup runs on success and failure. Missing counters, failed cleanup and an unsupported host fail closed.
+
+The system intentionally does not use sampled docker stats or Node.js CPU counters. Container CPU time is converted from source microseconds to nanoseconds. The monotonic elapsed_ns interval includes some Docker API startup and termination overhead, and is not an exact nanosecond kernel runtime clock. It is independent of pricing and billing. GPU metrics are null.
+
+## Host prerequisites
+
+Docker on Linux commonly uses the systemd cgroup driver. This initial implementation **requires cgroup v2 + cgroupfs** and is **not compatible with a default systemd-driver host**.
+
+Check the runtime using this command:
+
+    docker info --format '{{.CgroupVersion}}/{{.CgroupDriver}}'
+
+Expected: 2/cgroupfs.
+
+The host operator must securely provision a delegated subtree such as /sys/fs/cgroup/arl-metering. The subtree's cgroup.subtree_control must enable cpu and memory; the trusted validator host account must have sufficient permission to create child cgroups. Do not make /sys/fs/cgroup globally writable. Never change the production Docker daemon configuration simply to satisfy this experimental reference runtime.
+
+MeteredDockerRunner requires cgroupRoot to be an absolute trusted subtree under /sys/fs/cgroup. The Docker daemon and validator must address the same kernel cgroup hierarchy. Incompatible namespaces, inaccessible counters or unexpected Docker cgroup configuration cause failure instead of invented measurements.
+
+## Provider and validator boundary
+
+The existing execute() API may return optional Execution.metering. This is separate from ResultManifest and does not alter deterministic resultHash() compatibility.
+
+Only the trusted provider-side runtime should call produceMeteringReceipt(spec, execution, identity) with a separate provider meter private key. The producer requires an accepted, zero-exit run, a matching spec and result commitment, and actual metering fields. It creates cryptographically random run_id and nonce and signs an EIP-712 message.
+
+The validator never holds the provider's meter private key. It must independently authenticate the authorized signing address from the provider's on-chain bound registration before calling verifyMeteringReceipt(). Signed measurements prove integrity and attribution under the trusted-host assumption, not physical resource consumption against an administrator-controlled host.
+
+## Validation
+
+Run normal checks:
+
+    npm ci
+    npm test -w @arl/verifier
+    npm run typecheck
+    npm run lint
+    npm run format:check
+
+For the gated real-Docker integration test on a preconfigured supported Linux host:
+
+    ARL_METERING_CGROUP_ROOT=/sys/fs/cgroup/arl-metering npm run test:docker -w @arl/verifier
+
+The test runs a pinned BusyBox CPU/memory workload, reads retained counters, signs the receipt using a public deterministic testing key, and verifies the signature and job bindings. It is **not tested or proven passing yet** in the current environment.
+
+## Remaining integration work
+
+The approved execution identity (provider original execution versus validator re-execution), receipt transport, authenticated historical ERC-8004 meter-key registration, replay policy and failure-evidence representation require upstream confirmation. The live watcher, Anvil vote demonstration and complete CI suite are not yet integrated or verified. The file-backed per-validator replay reservation is provisional and must not be represented as the agreed protocol policy.
+
+No Solidity, deployed address, billing, payment or tokenomics change is part of this work.
