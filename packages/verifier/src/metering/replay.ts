@@ -6,6 +6,8 @@
 import { mkdir, open } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 
+import type { Address } from "viem";
+
 import { canonicalHash } from "../canonical.ts";
 import { MeteringReceiptError, type VerifiedMeteringReceipt } from "./receipt.ts";
 
@@ -27,12 +29,17 @@ function replayError(code: string, reason: string): MeteringReceiptError {
  */
 export class FileMeteringReplayStore implements MeteringReplayStore {
   private readonly directory: string;
+  private readonly validator: Address;
 
-  constructor(directory: string) {
+  constructor(directory: string, validator: Address) {
     if (!isAbsolute(directory) || directory.includes("\0")) {
       throw replayError("REPLAY_STORAGE_UNAVAILABLE", "replay state directory must be trusted");
     }
+    if (!/^0x[0-9a-fA-F]{40}$/.test(validator)) {
+      throw replayError("REPLAY_STORAGE_UNAVAILABLE", "validator identity must be an EVM address");
+    }
     this.directory = directory;
+    this.validator = validator.toLowerCase() as Address;
   }
 
   async consume(verified: VerifiedMeteringReceipt): Promise<void> {
@@ -44,6 +51,7 @@ export class FileMeteringReplayStore implements MeteringReplayStore {
       chain_id: receipt.chain_id,
       evaluator_address: receipt.evaluator_address,
       job_id: receipt.job_id,
+      validator: this.validator,
     });
     const path = join(this.directory, key.slice(2) + ".json");
     try {
@@ -71,6 +79,7 @@ export class FileMeteringReplayStore implements MeteringReplayStore {
           chain_id: receipt.chain_id,
           evaluator_address: receipt.evaluator_address,
           job_id: receipt.job_id,
+          validator: this.validator,
           run_id: receipt.run_id,
           nonce: receipt.nonce,
         }) + "\n",
