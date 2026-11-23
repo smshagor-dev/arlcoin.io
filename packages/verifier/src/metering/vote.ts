@@ -100,6 +100,10 @@ export async function voteMeteredJob(input: MeteredJobVoteInput): Promise<Metere
     deliverableHash: job.deliverable,
     containerDigest: input.spec.container_digest,
     expectedSigner,
+    // The Docker start/wait interval includes host control-plane overhead.
+    // This bounded allowance is not billed as container CPU time.
+    maxElapsedNs: (input.spec.limits.seconds + 30) * 1_000_000_000,
+    maxMemoryBytes: input.spec.limits.memory_mb * 1024 * 1024 + 32 * 1024 * 1024,
     nowSeconds: Math.floor(Date.now() / 1000),
     maxReceiptAgeSeconds: input.maxReceiptAgeSeconds,
     maxFutureSkewSeconds: input.maxFutureSkewSeconds ?? 5,
