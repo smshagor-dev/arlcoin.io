@@ -36,6 +36,7 @@ function snapshot(raw: unknown = document): MeterRegistrationSnapshot {
     evaluatorAddress: evaluator,
     jobId: 7n,
     registrationBlock: 42n,
+    expectedRegistrationUri: "https://example.org/agent.json",
     registrationBytes: bytes,
     pinnedRegistrationSha256: pin(bytes),
   };
@@ -87,6 +88,13 @@ describe("pinned historical ERC-8004 meter registration", () => {
     await assert.rejects(() => resolveMeterSigner(client, snapshot()), {
       code: "REGISTRATION_UNAVAILABLE",
     });
+  });
+
+  it("refuses a historical URI that differs from the independently pinned URI", async () => {
+    await assert.rejects(
+      () => resolveMeterSigner(chain({ uri: "https://other.example.org/agent.json" }).client, snapshot()),
+      { code: "REGISTRATION_UNAVAILABLE" },
+    );
   });
 
   it("rejects a registration file whose bytes differ from the pinned historical hash", async () => {
