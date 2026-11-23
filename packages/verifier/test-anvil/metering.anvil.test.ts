@@ -465,6 +465,22 @@ describe("metered votes against the real local evaluator", () => {
         { code: "REGISTRATION_UNAVAILABLE" },
       );
       assert.equal(invalidReceiptExecutions, 0, "late key registration must not start a run");
+      await assert.rejects(
+        () =>
+          executeAndVoteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            spec: parseSpec({
+              ...SPEC,
+              command: ["sh", "-c", "echo uncommitted"],
+            }),
+            receipt: delivered,
+            replay: firstStore,
+            execution: { ...execOptions, runner: forbiddenRunner },
+          }),
+        { code: "SPEC_MISMATCH" },
+      );
+      assert.equal(invalidReceiptExecutions, 0, "wrong spec must not execute");
       const first = await executeAndVoteMeteredJob({
         ...common,
         wallet: wallet(v1),
