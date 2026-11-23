@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 import type { Hex } from "viem";
 
-import type { ContainerRunner } from "./docker.ts";
+import type { ContainerRunner, RunMetering } from "./docker.ts";
 import { inside, materialize, noSymlinkOnPath, type Fetcher } from "./inputs.ts";
 import {
   acceptance,
@@ -24,6 +24,8 @@ import { specHash, type ReexecSpec } from "./spec.ts";
 export interface Execution {
   result: ResultManifest;
   hash: Hex;
+  /** Optional resource measurements; excluded from deterministic resultHash. */
+  metering?: RunMetering;
 }
 
 /** Makes a tree writable by the job's unprivileged user. */
@@ -86,7 +88,8 @@ export async function execute(spec: ReexecSpec, opts: ExecuteOptions): Promise<E
     opts.signal?.throwIfAborted();
     await openUp(work);
     await openUp(out);
-    const status = await opts.runner.run(spec, work, out);
+    const status = await opts.runner.run(spec, work, out, opts.signal);
+    opts.signal?.throwIfAborted();
     const outputs: OutputEntry[] = [];
     for (const p of [...spec.outputs].sort()) outputs.push(await outputEntry(out, p));
     const result: ResultManifest = {
@@ -96,7 +99,11 @@ export async function execute(spec: ReexecSpec, opts: ExecuteOptions): Promise<E
       timed_out: status.timedOut,
       outputs,
     };
-    return { result, hash: resultHash(result) };
+    return {
+      result,
+      hash: resultHash(result),
+      ...(status.metering ? { metering: status.metering } : {}),
+    };
   } finally {
     await rm(root, { recursive: true, force: true });
   }
