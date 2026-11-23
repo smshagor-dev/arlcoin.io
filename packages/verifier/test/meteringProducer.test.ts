@@ -105,6 +105,25 @@ describe("metered Docker argument and provider receipt construction", () => {
     );
   });
 
+  it("canonicalizes a checksummed evaluator address before signing", async () => {
+    const mixedCase = "0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD" as const;
+    const signed = await produceMeteringReceipt(spec, execution, {
+      ...identity,
+      evaluatorAddress: mixedCase,
+    });
+    assert.equal(signed.receipt.evaluator_address, mixedCase.toLowerCase());
+    const verified = await verifyMeteringReceipt(signed, {
+      chainId: identity.chainId,
+      evaluatorAddress: mixedCase,
+      jobId: identity.jobId,
+      specHash: specHash(spec),
+      deliverableHash: resultHash(result),
+      containerDigest: spec.container_digest,
+      expectedSigner: signer,
+    });
+    assert.equal(verified.receipt.evaluator_address, mixedCase.toLowerCase());
+  });
+
   it("never signs an unmetered, failed, timed-out or result-mismatched run", async () => {
     const { metering: present, ...unmetered } = execution;
     assert.ok(present);
