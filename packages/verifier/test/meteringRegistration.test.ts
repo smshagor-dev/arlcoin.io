@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import type { Address, PublicClient } from "viem";
+import type { Address, Hex, PublicClient } from "viem";
 
 import {
   resolveMeterSigner,
+  verifyRegisteredMeteringReceipt,
   type MeterRegistrationSnapshot,
 } from "../src/metering/registration.ts";
+import type { MeteringReceipt } from "../src/metering/receipt.ts";
 
 const evaluator: Address = "0x1000000000000000000000000000000000000001";
 const jobs: Address = "0x2000000000000000000000000000000000000002";
@@ -132,5 +135,52 @@ describe("pinned historical ERC-8004 meter registration", () => {
       { code: "REGISTRATION_UNAVAILABLE" },
     );
     assert.equal(calls.length, 0);
+  });
+
+  it("independently verifies a signed test-vector receipt using the pinned registration", async () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL("../../../spec/arl-metering-receipt/v0.1.0/vectors.json", import.meta.url),
+        "utf8",
+      ),
+    ) as { valid: { receipt: MeteringReceipt; signature: Hex } };
+    const signed = { receipt: fixture.valid.receipt, signature: fixture.valid.signature };
+    const context = {
+      chainId: 31337,
+      evaluatorAddress: evaluator,
+      jobId: "7",
+      specHash: signed.receipt.spec_hash,
+      deliverableHash: signed.receipt.deliverable_hash,
+      containerDigest: signed.receipt.container_digest,
+    };
+    const verified = await verifyRegisteredMeteringReceipt(
+      chain().client,
+      signed,
+      context,
+      snapshot(),
+    );
+    assert.equal(verified.signer, signer);
+    assert.equal(verified.receipt.job_id, "7");
+
+    await assert.rejects(
+      () =>
+        verifyRegisteredMeteringReceipt(
+          chain().client,
+          { ...signed, receipt: { ...signed.receipt, cpu_time_ns: 1_120_000_001 } },
+          context,
+          snapshot(),
+        ),
+      { code: "SIGNER_MISMATCH" },
+    );
+    await assert.rejects(
+      () =>
+        verifyRegisteredMeteringReceipt(
+          chain().client,
+          signed,
+          { ...context, jobId: "8" },
+          snapshot(),
+        ),
+      { code: "REGISTRATION_UNAVAILABLE" },
+    );
   });
 });
