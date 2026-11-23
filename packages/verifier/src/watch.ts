@@ -29,6 +29,15 @@ import {
 } from "./chain.ts";
 import { canonicalHash } from "./canonical.ts";
 import type { Fetcher } from "./inputs.ts";
+import {
+  decideResearch,
+  fetchResearchTask,
+  networkSourceFetcher,
+  proofUriOf,
+  researchTaskRef,
+  type ModelJudge,
+  type SourceFetcher,
+} from "./research.ts";
 import { parseSpec, specHash, type ReexecSpec } from "./spec.ts";
 import { decide, type Decision, type ExecuteOptions } from "./verify.ts";
 
@@ -116,6 +125,11 @@ export interface WatchDeps {
   evaluator: Address;
   /** Re-execution: the container runner and the input fetcher. */
   exec: ExecuteOptions;
+  /**
+   * Research-sources jobs (research.ts): the fetcher for proofs and cited sources (default: public
+   * https only), and the pinned model this validator runs, if any, for rules a model may decide.
+   */
+  research?: { fetcher?: SourceFetcher; judge?: ModelJudge };
   /** Fetches the spec document a job's description points to. */
   specFetcher: Pick<Fetcher, "file">;
   log?: (event: Record<string, unknown>) => void;
@@ -252,32 +266,53 @@ export async function decideOrFail(
   committedSpecHash: `0x${string}`,
   deliverable: `0x${string}`,
 ): Promise<Decision | null> {
+  return decideWithin(
+    deps,
+    voteEnds,
+    "re-execution",
+    (signal) =>
+      decide(spec as ReexecSpec, committedSpecHash, deliverable, { ...deps.exec, signal }),
+    () => {
+      if (!spec) throw new Error("no spec matching the job's specHash is available");
+    },
+  );
+}
+
+/**
+ * Runs `run` under the job's deadline (security report 2026-11-20): until FAILURE_VOTE_MARGIN
+ * before the vote window ends, or JOB_DEADLINE_SECONDS while voting has not started, so a slow or
+ * silent server cannot hold the keeper past the point where it can still vote. A failure returns
+ * null while there is time to retry, then a reject decision whose evidence is the hash of the
+ * failure.
+ */
+export async function decideWithin(
+  deps: WatchDeps,
+  voteEnds: bigint,
+  what: string,
+  run: (signal: AbortSignal) => Promise<Decision>,
+  /** Checked before the deadline: what makes the job undecidable at all. */
+  precondition?: () => void,
+): Promise<Decision | null> {
   const margin = deps.failureVoteMargin ?? FAILURE_VOTE_MARGIN;
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadlineHit = { value: false };
   try {
-    if (!spec) throw new Error("no spec matching the job's specHash is available");
-    // A deadline for the whole job, so a slow or silent input server cannot hold the keeper past
-    // the point where it can still vote (security report 2026-11-20): until FAILURE_VOTE_MARGIN
-    // before the vote window ends, or JOB_DEADLINE_SECONDS while voting has not started.
+    precondition?.();
     const { timestamp: start } = await deps.client.getBlock();
     const budget = voteEnds === 0n ? JOB_DEADLINE_SECONDS : voteEnds - margin - start;
-    if (budget <= 0n) throw new Error("no time left to re-execute before the vote deadline");
+    if (budget <= 0n) throw new Error(`no time left to re-execute before the vote deadline`);
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(
         () => {
           deadlineHit.value = true;
           controller.abort();
-          reject(new Error(`re-execution did not finish within ${budget.toString()} s`));
+          reject(new Error(`${what} did not finish within ${budget.toString()} s`));
         },
         Number(budget) * 1000,
       );
     });
-    return await Promise.race([
-      decide(spec, committedSpecHash, deliverable, { ...deps.exec, signal: controller.signal }),
-      deadline,
-    ]);
+    return await Promise.race([run(controller.signal), deadline]);
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
     const { timestamp } = await deps.client.getBlock();
@@ -288,14 +323,34 @@ export async function decideOrFail(
     }
     return {
       approve: false,
-      reason: `re-execution failed: ${reason}`,
-      evidence: canonicalHash({ error: "re-execution failed", reason }),
+      reason: `${what} failed: ${reason}`,
+      evidence: canonicalHash({ error: `${what} failed`, reason }),
       result: null,
     };
   } finally {
     clearTimeout(timer);
     controller.abort();
   }
+}
+
+/** The vote on a research-sources job: its proof is found through the submit call, then checked. */
+export async function decideResearchOrFail(
+  deps: WatchDeps,
+  job: Pick<JobView, "description" | "specHash" | "voteEnds" | "deliverable" | "submissionTx">,
+): Promise<Decision | null> {
+  const fetcher = deps.research?.fetcher ?? networkSourceFetcher;
+  return decideWithin(deps, job.voteEnds, "research check", async () => {
+    const found = await fetchResearchTask(job.description, job.specHash, fetcher);
+    if (!found) throw new Error("the job is not a research-sources task");
+    if (!job.deliverable || !job.submissionTx) throw new Error("the job has no submission yet");
+    const proofUri = await proofUriOf(deps.client, job.submissionTx);
+    const d = await decideResearch(
+      { ...found, proofUri, deliverable: job.deliverable },
+      fetcher,
+      deps.research?.judge,
+    );
+    return { approve: d.approve, reason: d.reason, evidence: d.evidence, result: null };
+  });
 }
 
 /** One pass: discover new jobs, then accept or vote where the job is ready. Returns the new state. */
@@ -377,12 +432,38 @@ export async function step(deps: WatchDeps, state: WatchState): Promise<WatchSta
           log({ jobId: id, event: "not-accepted", reason: refused });
           continue;
         }
-        const spec = await usableSpec(job.description, job.specHash, deps.specFetcher);
-        if (!spec) {
-          log({ jobId: id, event: "spec-unusable", reason: "spec not fetchable or hash differs" });
-          continue;
+        if (researchTaskRef(job.description)) {
+          // A research-sources task: accepted only if the task fetches and matches both hashes.
+          // Its vote checks the proof (decideResearchOrFail), not a re-execution.
+          const research = await fetchResearchTask(
+            job.description,
+            job.specHash,
+            deps.research?.fetcher ?? networkSourceFetcher,
+          ).catch(() => null);
+          if (!research) {
+            const spec = await usableSpec(job.description, job.specHash, deps.specFetcher);
+            if (!spec) {
+              log({
+                jobId: id,
+                event: "spec-unusable",
+                reason: "task not checkable by this validator",
+              });
+              continue;
+            }
+            specs[id] = spec;
+          }
+        } else {
+          const spec = await usableSpec(job.description, job.specHash, deps.specFetcher);
+          if (!spec) {
+            log({
+              jobId: id,
+              event: "spec-unusable",
+              reason: "spec not fetchable or hash differs",
+            });
+            continue;
+          }
+          specs[id] = spec;
         }
-        specs[id] = spec;
         // A job can go from Funded to Submitted between two passes; the contract still accepts
         // it until the vote window ends. accept() also requires the provider's committee
         // approval; a revert here just means "not yet" and the job is tried again next pass.
@@ -398,16 +479,26 @@ export async function step(deps: WatchDeps, state: WatchState): Promise<WatchSta
         );
         if (tx) log({ jobId: id, event: "accepted", tx });
       } else if (job.memberState === MemberState.Accepted && job.deliverable !== null) {
-        // The spec checked at accept time first; a fresh fetch only if it is missing, and only if
-        // it still hashes to the committed specHash.
-        const spec = await voteSpec(specs[id], job.description, job.specHash, deps.specFetcher);
-        const decision = await decideOrFail(
-          deps,
-          job.voteEnds,
-          spec,
-          job.specHash,
-          job.deliverable,
-        );
+        // A research task is checked against its proof. Otherwise the spec checked at accept
+        // time first; a fresh fetch only if it is missing, and only if it still hashes to the
+        // committed specHash.
+        const isResearch =
+          specs[id] === undefined &&
+          researchTaskRef(job.description) !== null &&
+          (await fetchResearchTask(
+            job.description,
+            job.specHash,
+            deps.research?.fetcher ?? networkSourceFetcher,
+          ).catch(() => null)) !== null;
+        const decision = isResearch
+          ? await decideResearchOrFail(deps, job)
+          : await decideOrFail(
+              deps,
+              job.voteEnds,
+              await voteSpec(specs[id], job.description, job.specHash, deps.specFetcher),
+              job.specHash,
+              job.deliverable,
+            );
         if (!decision) {
           log({ jobId: id, event: "execution-failed", retry: true });
           continue;

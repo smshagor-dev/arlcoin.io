@@ -10,3 +10,4 @@ export * from "./state.ts";
 export * from "./bundle.ts";
 export * from "./provide.ts";
 export * from "./make.ts";
+export * from "./research.ts";

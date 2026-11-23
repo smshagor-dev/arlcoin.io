@@ -16,6 +16,10 @@
 // validator and votes on the submitted ones, fetching each spec from the job's description
 // (https or ipfs). Its progress is kept in state.json (default .arl-verifier-state.json). A
 // negative fromBlock counts back from the head; ARL_WATCH_ONCE=1 makes one pass and exits.
+// Research-sources jobs need a pinned open model for their `answers-question` rule: set
+// ARL_RESEARCH_MODEL_URL (an OpenAI-compatible endpoint, e.g. http://127.0.0.1:11434/v1),
+// ARL_RESEARCH_MODEL (its model name) and ARL_RESEARCH_MODEL_SHA256 (the weights' SHA-256).
+// Without them those jobs are still checked, and the vote rejects for want of that outcome.
 //
 //   ARL_PROVIDER_KEY=0x… ARL_MIN_BUDGET=<base units> node src/cli.ts provide <rpc> <evaluator> <fromBlock> [state.json]
 //
@@ -59,6 +63,7 @@ import { nodeTestSpec } from "./make.ts";
 import { parseSpec, specHash } from "./spec.ts";
 import { decide, execute } from "./verify.ts";
 import { buildBundle, verifyBundle, type EvidenceBundle } from "./bundle.ts";
+import { openAiCompatibleJudge } from "./research.ts";
 import { DEFAULT_ACCEPT_POLICY, step, type AcceptPolicy, type WatchState } from "./watch.ts";
 
 /** viem chain for signing: Base Mainnet as is, otherwise Base Sepolia's settings with the id. */
@@ -238,6 +243,7 @@ async function main(argv: readonly string[]): Promise<void> {
         // ARL_LOG_WINDOW: blocks per eth_getLogs call, up to the RPC's limit.
         logWindow: BigInt(process.env.ARL_LOG_WINDOW ?? "5000"),
         acceptPolicy,
+        research: researchJudgeFromEnv(process.env),
         log: (e: Record<string, unknown>) => {
           print({ at: new Date().toISOString(), ...e });
         },
@@ -414,3 +420,17 @@ async function main(argv: readonly string[]): Promise<void> {
 main(process.argv.slice(2)).catch((error: unknown) => {
   fail(error instanceof Error ? error.message : String(error));
 });
+
+/** The research-sources model, from ARL_RESEARCH_MODEL_URL / _MODEL / _MODEL_SHA256, if set. */
+function researchJudgeFromEnv(env: NodeJS.ProcessEnv) {
+  const baseUrl = env.ARL_RESEARCH_MODEL_URL?.trim();
+  const model = env.ARL_RESEARCH_MODEL?.trim();
+  const weightsSha256 = env.ARL_RESEARCH_MODEL_SHA256?.trim().toLowerCase();
+  if (!baseUrl && !model && !weightsSha256) return {};
+  if (!baseUrl || !model || !weightsSha256) {
+    fail(
+      "set all of ARL_RESEARCH_MODEL_URL, ARL_RESEARCH_MODEL and ARL_RESEARCH_MODEL_SHA256, or none",
+    );
+  }
+  return { judge: openAiCompatibleJudge({ baseUrl, model, weightsSha256 }) };
+}

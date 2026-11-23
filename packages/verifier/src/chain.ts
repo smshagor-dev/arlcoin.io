@@ -128,6 +128,11 @@ export interface JobView {
   voteEnds: bigint;
   /** The deliverable from `JobSubmitted`, if the job was submitted. */
   deliverable: Hex | null;
+  /**
+   * The transaction that made the latest submission. A task that is not re-executed carries its
+   * proof URI in that call's third argument (research.ts, proofUriOf).
+   */
+  submissionTx: Hex | null;
   /** Who pays for the job. */
   client: Address;
   /** The escrowed amount, in the escrow token's smallest unit (0 until the budget is set). */
@@ -190,6 +195,7 @@ export async function readJob(
     }),
   ]);
   let deliverable: Hex | null = null;
+  let submissionTx: Hex | null = null;
   if (job.status >= JobStatus.Submitted) {
     // The latest submission, searched from the head backwards one bounded range at a time, so
     // an RPC that caps the range of eth_getLogs (as public endpoints do) still answers.
@@ -207,7 +213,9 @@ export async function readJob(
         fromBlock: from,
         toBlock: to,
       });
-      deliverable = logs.at(-1)?.args.deliverable ?? null;
+      const last = logs.at(-1);
+      deliverable = last?.args.deliverable ?? null;
+      submissionTx = last?.transactionHash ?? null;
       if (from === floor) break;
     }
   }
@@ -220,6 +228,7 @@ export async function readJob(
     memberState,
     voteEnds: verdict.voteEnds,
     deliverable,
+    submissionTx,
     client: job.client,
     budget: job.budget,
     expiredAt: job.expiredAt,
