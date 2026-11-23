@@ -163,6 +163,25 @@
   .material-card[data-tint="ecosystem"] {
     --tint: #ff9a76;
   }
+  /* Finished things glow: a LIVE card or a done roadmap phase breathes in its own layer
+     colour, like neon; a phase under way blinks in neon blue. */
+  .material-card[data-tint][data-status="LIVE"],
+  .material-card[data-tint][data-progress="done"] {
+    border-color: color-mix(in srgb, var(--tint) 75%, transparent);
+    animation: tint-neon 2.4s ease-in-out infinite;
+  }
+  .material-card[data-tint][data-progress="active"] {
+    --tint: #2ea8ff;
+    border-color: #2ea8ff;
+    animation: road-frame 1.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .material-card[data-tint][data-status="LIVE"],
+    .material-card[data-tint][data-progress="done"],
+    .material-card[data-tint][data-progress="active"] {
+      animation: none;
+    }
+  }
   /* Live cards carry the green live dot. */
   .material-card[data-status="LIVE"]::after {
     content: "";
@@ -954,16 +973,18 @@
 }
 .landing-road li[data-progress="done"] {
   border-color: #85bb65;
-  box-shadow:
-    0 0 10px rgb(133 187 101 / 0.45),
-    inset 0 0 12px rgb(133 187 101 / 0.08);
+  animation: done-frame 2.4s ease-in-out infinite;
 }
 .landing-road li[data-progress="done"]::before {
-  background: #85bb65;
-  box-shadow: 0 0 8px rgb(133 187 101 / 0.9);
+  background: #a9e07f;
+  box-shadow:
+    0 0 6px #85bb65,
+    0 0 14px rgb(133 187 101 / 0.9);
+  animation: road-blink 2.4s ease-in-out infinite;
 }
 .landing-road li[data-progress="done"] .road-state {
   color: #a9d68c;
+  text-shadow: 0 0 6px rgb(133 187 101 / 0.8);
 }
 .landing-road li[data-progress="active"] {
   border-color: #2ea8ff;
@@ -994,6 +1015,34 @@
     box-shadow: 0 0 0 rgb(46 168 255 / 0);
   }
 }
+/* The same neon breath as a phase under way, in dollar green, slower: done and live things. */
+@keyframes done-frame {
+  0%,
+  100% {
+    border-color: #85bb65;
+    box-shadow:
+      0 0 6px rgb(133 187 101 / 0.9),
+      0 0 18px rgb(133 187 101 / 0.55),
+      inset 0 0 14px rgb(133 187 101 / 0.16);
+  }
+  55% {
+    border-color: rgb(133 187 101 / 0.35);
+    box-shadow: 0 0 0 rgb(133 187 101 / 0);
+  }
+}
+@keyframes tint-neon {
+  0%,
+  100% {
+    box-shadow:
+      0 0 6px color-mix(in srgb, var(--tint) 90%, transparent),
+      0 0 18px color-mix(in srgb, var(--tint) 55%, transparent),
+      inset 0 0 14px color-mix(in srgb, var(--tint) 16%, transparent);
+  }
+  55% {
+    border-color: color-mix(in srgb, var(--tint) 30%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tint) 40%, transparent);
+  }
+}
 @keyframes road-blink {
   0%,
   100% {
@@ -1005,7 +1054,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .landing-road li[data-progress="active"],
-  .landing-road li[data-progress="active"]::before {
+  .landing-road li[data-progress="active"]::before,
+  .landing-road li[data-progress="done"],
+  .landing-road li[data-progress="done"]::before {
     animation: none;
   }
   .landing-road li[data-progress="active"] {
@@ -1544,8 +1595,9 @@ html.lenis body {
   color: #a9d68c;
 }
 .status-pill[data-status="live"] .status-dot {
-  background: #85bb65;
+  background: #a9e07f;
   box-shadow: 0 0 8px rgb(133 187 101 / 0.9);
+  animation: road-blink 2.4s ease-in-out infinite;
 }
 .status-pill[data-status="building"] {
   border-color: rgb(217 183 122 / 0.6);
@@ -1557,9 +1609,7 @@ html.lenis body {
 /* A card that carries a status wears it on its frame too (the four checks on the home page). */
 .status-frame-live {
   border: 1.5px solid #85bb65;
-  box-shadow:
-    0 0 10px rgb(133 187 101 / 0.45),
-    inset 0 0 12px rgb(133 187 101 / 0.08);
+  animation: done-frame 2.4s ease-in-out infinite;
 }
 .status-frame-building {
   border: 1.5px solid var(--color-accent);
@@ -1567,7 +1617,9 @@ html.lenis body {
 }
 @media (prefers-reduced-motion: reduce) {
   .status-pill[data-status="building"] .status-dot,
-  .status-frame-building {
+  .status-pill[data-status="live"] .status-dot,
+  .status-frame-building,
+  .status-frame-live {
     animation: none;
   }
 }

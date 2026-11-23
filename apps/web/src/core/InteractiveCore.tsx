@@ -46,6 +46,7 @@ export function InteractiveCore() {
       weight: c.weight,
       tint: layer.id,
       ...(c.status ? { status: c.status } : {}),
+      ...(c.progress ? { progress: c.progress } : {}),
       ...(c.metric ? { metric: c.metric } : {}),
       ...(c.person
         ? {

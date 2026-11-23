@@ -1,6 +1,6 @@
 "use client";
 
-import type { Metric, Status, VerificationStatus, Weight } from "@/content/types.ts";
+import type { Metric, Progress, Status, VerificationStatus, Weight } from "@/content/types.ts";
 
 import { withBase } from "./basePath.ts";
 import { isPlainClick } from "./useCoreRoute.ts";
@@ -14,6 +14,8 @@ export interface RingEntry {
   /** Layer id: picks the card's colour (globals.css, .material-card[data-tint]). */
   tint?: string;
   status?: Status;
+  /** Roadmap phases: done or under way (globals.css lights the frame). */
+  progress?: Progress;
   metric?: Metric;
   /** Present for person cards. */
   person?: { initials: string; verificationStatus: VerificationStatus };
@@ -116,6 +118,7 @@ export function RingCard({ entry, selected, onActivate }: Props) {
       data-weight={entry.weight}
       data-tint={entry.tint}
       data-status={entry.status}
+      data-progress={entry.progress}
       data-selected={selected ? "true" : undefined}
       className={`material-card group flex h-full flex-col justify-between gap-4 rounded-(--radius-card) border p-4 transition-colors duration-150`}
     >

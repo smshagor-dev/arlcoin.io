@@ -580,7 +580,7 @@ export default function Home() {
         <Section
           alt
           heading="Where ARL is today."
-          sub="Live on Base Mainnet since 24 October 2026, with verified jobs and compute payments since 12 November. The open standards, the SDKs, the MCP server, the Agent API and the public trust records followed. A green frame is done; a blinking blue frame is work under way."
+          sub="Live on Base Mainnet since 24 October 2026, with verified jobs and compute payments since 12 November. The open standards, the SDKs, the MCP server, the Agent API and the public trust records followed. A glowing green frame is done; a blinking blue frame is work under way."
         >
           <Reveal delay={120} className="glass mt-14 rounded-[28px] p-6 sm:p-10">
             <ol className="landing-road text-left">
