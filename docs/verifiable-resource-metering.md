@@ -44,6 +44,14 @@ The validator never holds the provider's meter private key. Signed measurements 
 
 An **opt-in provisional resolver** in packages/verifier/src/metering/registration.ts reads the historical evaluator identity registry address, the job's provider and configured ERC-8004 provider agent ID, and the agent owner and tokenURI at a caller-selected registrationBlock. It requires a trusted external SHA-256 commitment to the *exact registration JSON bytes* and checks the registration's identity cross-reference and proposed extensions["arl-metering-receipt/1"].signer field. It rejects missing registration, wrong owner, mutable substituted metadata, malformed JSON, wrong chain and wrong job context. The verifyRegisteredMeteringReceipt wrapper resolves the signer first, then checks the EIP-712 receipt. It does not trust a self-declared signer or an HTTPS URL alone.
 
+ARLVerifiedEvaluator currently uses `providerAgentId = 0` as an unconfigured
+sentinel. The standard ERC-8004 registry starts minting token IDs at 0, so
+that initial agent cannot be referenced as a nonzero configured provider
+identity in ARL's current evaluator. The local Anvil demonstration registers
+a throwaway token 0 before registering the test provider as token 1.
+This is a pre-existing evaluator compatibility constraint; **no contract
+change** is proposed here.
+
 The trusted registration block number, SHA-256 commitment source, extension namespace and historical key-rotation policy **still require upstream approval**. This provisional resolver takes untrusted document bytes as an argument and does not fetch arbitrary remote URLs; an authenticated receipt transport is not yet implemented. Never treat a current, mutable metadata URL as an authorization snapshot.
 
 ## Validation
