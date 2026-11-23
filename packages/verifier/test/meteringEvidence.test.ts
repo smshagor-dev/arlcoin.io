@@ -79,7 +79,7 @@ describe("arl-metering-vote/1 evidence construction", () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-vote-"));
     try {
       const receipt = await signMeteringReceipt(receiptFor(result), key);
-      const replay = new FileMeteringReplayStore(directory);
+      const replay = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
       const approved = await buildMeteredApproval({
         spec,
         result,
@@ -105,7 +105,7 @@ describe("arl-metering-vote/1 evidence construction", () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-failure-"));
     try {
       const receipt = await signMeteringReceipt(receiptFor(result), key);
-      const replay = new FileMeteringReplayStore(directory);
+      const replay = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
       const manipulatedResult: ResultManifest = {
         ...result,
         outputs: [{ path: "results.json", sha256: "00".repeat(32) }],
@@ -146,7 +146,7 @@ describe("arl-metering-vote/1 evidence construction", () => {
             result: failed,
             receipt: signed,
             context: contextFor(failed),
-            replay: new FileMeteringReplayStore(directory),
+            replay: new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999"),
           }),
         { code: "REEXECUTION_REJECTED" },
       );
