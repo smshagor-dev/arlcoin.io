@@ -103,6 +103,13 @@ describe("metering receipt schema and EIP-712 verifier", () => {
     assert.throws(() => parseMeteringReceipt(changed({ evaluator_address: "bad-address" })), {
       code: "MALFORMED_RECEIPT",
     });
+    assert.throws(
+      () =>
+        parseMeteringReceipt(changed({
+          evaluator_address: "0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD",
+        })),
+      { code: "MALFORMED_RECEIPT" },
+    );
     assert.throws(() => parseMeteringReceipt(changed({ container_digest: "busybox:latest" })), {
       code: "MALFORMED_RECEIPT",
     });

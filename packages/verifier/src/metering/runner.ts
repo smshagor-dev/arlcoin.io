@@ -61,19 +61,24 @@ async function docker(
   executable: string,
   args: string[],
   timeout = COMMAND_TIMEOUT_MS,
+  signal?: AbortSignal,
 ): Promise<string> {
+  signal?.throwIfAborted();
   try {
     const result = await execFileAsync(executable, args, {
       timeout,
       maxBuffer: 16_384,
       windowsHide: true,
       encoding: "utf8",
+      ...(signal === undefined ? {} : { signal }),
     });
     return result.stdout.trim();
   } catch {
     throw new MeteringReceiptError(
       "METER_RUNTIME_FAILURE",
-      "Docker command failed: " + (args[0] ?? "unknown"),
+      signal?.aborted
+        ? "metered Docker command cancelled"
+        : "Docker command failed: " + (args[0] ?? "unknown"),
     );
   }
 }
@@ -128,7 +133,7 @@ export class MeteredDockerRunner implements ContainerRunner {
     const [actualRoot, enabled, driver] = await Promise.all([
       realpath(this.#cgroupRoot),
       readFile(join(this.#cgroupRoot, "cgroup.subtree_control"), "utf8"),
-      docker(this.#docker, ["info", "--format", "{{.CgroupVersion}}/{{.CgroupDriver}}"]),
+      docker(this.#docker, ["info", "--format", "{{.CgroupVersion}}/{{.CgroupDriver}}"], COMMAND_TIMEOUT_MS, signal),
     ]).catch(() => {
       throw new MeteringReceiptError(
         "METER_COUNTERS_UNAVAILABLE",
@@ -148,7 +153,7 @@ export class MeteredDockerRunner implements ContainerRunner {
     }
 
     // Pull is explicitly outside the metered execution interval.
-    await docker(this.#docker, ["pull", "-q", spec.container_digest], PULL_TIMEOUT_MS);
+    await docker(this.#docker, ["pull", "-q", spec.container_digest], PULL_TIMEOUT_MS, signal);
     signal?.throwIfAborted();
 
     const name = "arl-meter-" + randomBytes(12).toString("hex");
@@ -190,7 +195,7 @@ export class MeteredDockerRunner implements ContainerRunner {
       }, spec.limits.seconds * 1000);
 
       const args = meteredDockerArgs(spec, workDir, outDir, name, dockerParent);
-      const id = await docker(this.#docker, args);
+      const id = await docker(this.#docker, args, COMMAND_TIMEOUT_MS, signal);
       if (!/^[0-9a-f]{64}$/.test(id)) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "invalid Docker container ID");
       }
@@ -200,6 +205,8 @@ export class MeteredDockerRunner implements ContainerRunner {
       const actualParent = await docker(
         this.#docker,
         ["inspect", "--format", "{{.HostConfig.CgroupParent}}", name],
+        COMMAND_TIMEOUT_MS,
+        signal,
       );
       if (actualParent !== dockerParent) {
         throw new MeteringReceiptError(
@@ -233,6 +240,7 @@ export class MeteredDockerRunner implements ContainerRunner {
         this.#docker,
         ["wait", name],
         spec.limits.seconds * 1000 + 30_000,
+        signal,
       );
       const finished_at = Math.floor(Date.now() / 1000);
       const elapsed_ns = elapsedSafe(monotonicStart);

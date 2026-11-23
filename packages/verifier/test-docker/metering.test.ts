@@ -4,7 +4,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -112,4 +112,45 @@ describe("metered Docker cgroup v2 integration", {
       await rm(directory, { recursive: true, force: true });
     }
   });
+  it("honors cancellation without returning a signed receipt", async () => {
+    assert.ok(root);
+    const dir = await mkdtemp(join(tmpdir(), "arl-meter-cancel-"));
+    const receiptPath = join(dir, "receipt.json");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1_000);
+    const started = Date.now();
+    try {
+      const spec = job("sleep 30; echo complete > /out/result.txt");
+      await assert.rejects(
+        () =>
+          executeAndPublishMeteredReceipt(
+            spec,
+            {
+              chainId: 31337,
+              evaluatorAddress: "0x1000000000000000000000000000000000000001",
+              jobId: "8",
+              meterPrivateKey: keccak256(
+                stringToBytes("arl-metering-test-vector-only-not-private"),
+              ),
+            },
+            {
+              cgroupRoot: root,
+              receiptPath,
+              fetcher: {
+                file: () => Promise.reject(new Error("unexpected input")),
+                git: () => Promise.reject(new Error("unexpected input")),
+              },
+              signal: controller.signal,
+            },
+          ),
+      );
+      assert.equal(controller.signal.aborted, true);
+      assert.ok(Date.now() - started < 20_000, "cancellation must interrupt the workload");
+      await assert.rejects(() => stat(receiptPath), { code: "ENOENT" });
+    } finally {
+      clearTimeout(timer);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
 });
