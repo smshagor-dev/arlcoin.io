@@ -41,6 +41,8 @@ const RAW = [
   "0xdAa1EFD5E765Baf67D8013C1c67039945819B760",
   // ARL's own provider agent (agent 1221687).
   "0x69CF9b31076E6d4F581A79045eBAbc624E3cd4bf",
+  // ARL's own GPU and model provider (the team's office machine).
+  "0xc00E760552220D7bdd1473c8f2E9E7f68E2bfBcF",
 ] as const;
 
 export const EXCLUDED: readonly Address[] = RAW.map((a) => getAddress(a));
