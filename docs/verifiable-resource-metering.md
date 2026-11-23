@@ -26,6 +26,25 @@ MeteredDockerRunner requires cgroupRoot to be an absolute trusted subtree under 
 
 ## Provider and validator boundary
 
+The provider reference entrypoint is
+`executeAndPublishMeteredReceipt(spec, identity, {
+  cgroupRoot, receiptPath, fetcher
+})`, with optional disk, temporary-root and cancellation settings. It
+constructs a **real** `MeteredDockerRunner` (not a caller-supplied fake),
+executes the pinned job once, requires an accepted result, signs the
+receipt with the provider's separate meter private key and publishes a
+complete artifact in a trusted, preexisting local directory.
+
+Publication writes an exclusive `0600` temporary file, fsyncs it,
+atomically hard-links the completed content to the requested receipt
+path without overwriting an existing destination, removes the temporary
+link and fsyncs the containing directory. It returns the SHA-256
+of the exact serialized bytes, which a receiving validator can check
+with `readPinnedMeteringArtifact`. Neither this local SHA-256 nor the
+filesystem handoff is an independently trusted network registration.
+The provider must deliver and authorize the pin through a channel
+approved by the upstream protocol.
+
 The existing execute() API may return optional Execution.metering. This is separate from ResultManifest and does not alter deterministic resultHash() compatibility.
 
 Only the trusted provider-side runtime should call produceMeteringReceipt(spec, execution, identity) with a separate provider meter private key. The producer requires an accepted, zero-exit run, a matching spec and result commitment, and actual metering fields. It creates cryptographically random run_id and nonce and signs an EIP-712 message.
