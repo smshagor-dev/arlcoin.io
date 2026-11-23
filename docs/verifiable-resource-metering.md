@@ -110,7 +110,12 @@ the pinned specification. A real validator must supply the isolated
 rechecks the live job after `execute()` and then submits the composite
 evidence using the existing vote ABI. Rejected or expired receipts never
 start a job container. Closed vote windows and expired jobs are rejected
-before consuming replay state.
+before consuming replay state. A historical registration block whose timestamp
+is **more than 120 seconds newer than the receipt's start time** is refused,
+even when the key and URI are otherwise valid. This accounts for bounded host
+clock versus chain timestamp skew; it does **not** establish exact event order
+within that tolerance. The authoritative registration pin and clock
+synchronization policy remain subject to upstream confirmation.
 
 The optional voteMeteredJob() API checks the current chain job is Submitted,
 that the validator is Accepted, and that the configured spec and submitted
