@@ -10,3 +10,8 @@ export * from "./state.ts";
 export * from "./bundle.ts";
 export * from "./provide.ts";
 export * from "./make.ts";
+export * from "./metering/receipt.ts";
+export * from "./metering/cgroup.ts";
+export * from "./metering/runner.ts";
+export * from "./metering/produce.ts";
+export * from "./metering/replay.ts";
