@@ -50,6 +50,7 @@ export interface MeteringVerificationContext {
   /** Independently resolved from authenticated provider registration, never from the receipt. */
   expectedSigner: Address;
   maxElapsedNs?: number;
+  maxCpuTimeNs?: number;
   maxMemoryBytes?: number;
   /** Optional verification-time freshness policy. Omit only for explicit historical audits. */
   nowSeconds?: number;
@@ -433,6 +434,12 @@ export async function verifyMeteringReceipt(
   }
   if (context.maxElapsedNs !== undefined && receipt.elapsed_ns > context.maxElapsedNs) {
     fail("INVALID_MEASUREMENT", "elapsed duration exceeds configured limit");
+  }
+  if (
+    context.maxCpuTimeNs !== undefined &&
+    receipt.cpu_time_ns > context.maxCpuTimeNs
+  ) {
+    fail("INVALID_MEASUREMENT", "CPU time exceeds configured limit");
   }
   if (context.maxMemoryBytes !== undefined && receipt.memory_peak_bytes > context.maxMemoryBytes) {
     fail("INVALID_MEASUREMENT", "peak memory exceeds configured limit");
