@@ -10,7 +10,14 @@ import { createHash } from "node:crypto";
 import { parseAbi, type Address, type Hex, type PublicClient } from "viem";
 
 import { evaluatorAbi, jobsAbi } from "../chain.ts";
-import { MeteringReceiptError, parseMeteringJson } from "./receipt.ts";
+import {
+  MeteringReceiptError,
+  parseMeteringJson,
+  verifyMeteringReceipt,
+  type MeteringVerificationContext,
+  type SignedMeteringReceipt,
+  type VerifiedMeteringReceipt,
+} from "./receipt.ts";
 
 const evaluatorIdentityAbi = parseAbi(["function identity() view returns (address)"]);
 const identityAbi = parseAbi([
@@ -238,4 +245,22 @@ export async function resolveMeterSigner(
     registrationUri,
     registrationBlock: blockNumber,
   };
+}
+
+/** Resolver-enforced receipt verification; callers cannot supply their own signer. */
+export async function verifyRegisteredMeteringReceipt(
+  client: PublicClient,
+  signed: SignedMeteringReceipt,
+  context: Omit<MeteringVerificationContext, "expectedSigner">,
+  registration: MeterRegistrationSnapshot,
+): Promise<VerifiedMeteringReceipt> {
+  if (
+    registration.chainId !== context.chainId ||
+    registration.evaluatorAddress.toLowerCase() !== context.evaluatorAddress.toLowerCase() ||
+    registration.jobId.toString() !== context.jobId
+  ) {
+    return registrationError("registration context does not match the intended job");
+  }
+  const { expectedSigner } = await resolveMeterSigner(client, registration);
+  return verifyMeteringReceipt(signed, { ...context, expectedSigner });
 }
