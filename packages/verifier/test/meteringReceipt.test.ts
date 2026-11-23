@@ -123,6 +123,10 @@ describe("metering receipt schema and EIP-712 verifier", () => {
       () => verifyMeteringReceipt(envelope, { ...context, maxElapsedNs: 1024 }),
       { code: "INVALID_MEASUREMENT" },
     );
+    await assert.rejects(
+      () => verifyMeteringReceipt(envelope, { ...context, maxCpuTimeNs: 1024 }),
+      { code: "INVALID_MEASUREMENT" },
+    );
   });
 
   it("enforces explicit freshness and rejects receipts claiming future execution", async () => {
