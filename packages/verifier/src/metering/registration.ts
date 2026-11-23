@@ -44,6 +44,8 @@ export interface MeterRegistrationSnapshot {
    * No arbitrary HTTP fetch or redirect handling occurs inside this resolver.
    */
   registrationBytes: Uint8Array;
+  /** The exact externally authenticated URI for HTTPS/IPFS metadata. */
+  expectedRegistrationUri?: string;
 }
 
 export interface ResolvedMeterRegistration {
@@ -205,6 +207,23 @@ export async function resolveMeterSigner(
   }
 
   const bytes = Buffer.from(snapshot.registrationBytes);
+  const dataPrefix = "data:application/json;base64,";
+  if (registrationUri.startsWith(dataPrefix)) {
+    const encoded = registrationUri.slice(dataPrefix.length);
+    if (
+      !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) ||
+      encoded.length > MAX_REGISTRATION_BYTES * 2 ||
+      Buffer.from(encoded, "base64").toString("base64") !== encoded
+    ) {
+      return registrationError("on-chain registration data URI is not canonical base64");
+    }
+    if (!Buffer.from(encoded, "base64").equals(bytes)) {
+      return registrationError("on-chain registration data URI and pinned bytes differ");
+    }
+  } else if (snapshot.expectedRegistrationUri !== registrationUri) {
+    return registrationError("external metadata URI does not match the pinned source");
+  }
+
   const digest = "0x" + createHash("sha256").update(bytes).digest("hex");
   if (digest !== snapshot.pinnedRegistrationSha256) {
     return registrationError("registration metadata bytes differ from trusted snapshot pin");
