@@ -34,7 +34,10 @@ import {
   produceMeteringReceipt,
   readJob,
   MemberState,
+  resolveMeterSigner,
+  signMeteringReceipt,
   specHash,
+  verifyMeteredEvidence,
   voteMeteredJob,
   type ContainerRunner,
   type Fetcher,
@@ -343,6 +346,39 @@ describe("metered votes against the real local evaluator", () => {
         }),
         { code: "INVALID_MEASUREMENT" },
       );
+      const unauthorized = await signMeteringReceipt(
+        signed.receipt,
+        ("0x" + "36".repeat(32)) as Hex,
+      );
+      await assert.rejects(
+        () =>
+          voteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: unauthorized,
+            replay: firstStore,
+          }),
+        { code: "SIGNER_MISMATCH" },
+      );
+      const historicalTime = Math.floor(Date.now() / 1000) - 3_600;
+      const expired = await signMeteringReceipt(
+        {
+          ...signed.receipt,
+          started_at: historicalTime,
+          finished_at: historicalTime,
+        },
+        meterKey,
+      );
+      await assert.rejects(
+        () =>
+          voteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: expired,
+            replay: firstStore,
+          }),
+        { code: "RECEIPT_EXPIRED" },
+      );
       assert.equal((await readJob(rpc, evaluator, jobId, v1.address)).memberState, MemberState.Accepted);
       await assert.rejects(
         () => voteMeteredJob({
@@ -364,6 +400,23 @@ describe("metered votes against the real local evaluator", () => {
         replay: new FileMeteringReplayStore(directory, v2.address),
       });
       assert.equal(first.evidenceHash, second.evidenceHash);
+      const { expectedSigner } = await resolveMeterSigner(rpc, registration);
+      const audited = await verifyMeteredEvidence({
+        spec: SPEC,
+        result: independent.result,
+        receipt: signed,
+        context: {
+          chainId: 31337,
+          evaluatorAddress: evaluator,
+          jobId: jobId.toString(),
+          specHash: specHash(SPEC),
+          deliverableHash: providerRun.hash,
+          containerDigest: SPEC.container_digest,
+          expectedSigner,
+        },
+        expectedEvidenceHash: first.evidenceHash,
+      });
+      assert.equal(audited.evidenceHash, first.evidenceHash);
       const logs = await rpc.getLogs({
         address: evaluator, event: votedEvent, args: { jobId }, fromBlock: 0n,
       });
