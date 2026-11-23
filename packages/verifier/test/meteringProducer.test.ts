@@ -131,7 +131,12 @@ describe("metered Docker argument and provider receipt construction", () => {
       { code: "REEXECUTION_REJECTED" },
     );
     await assert.rejects(
-      () => produceMeteringReceipt(spec, { ...execution, hash: ("0x" + "77".repeat(32)) as typeof execution.hash }, identity),
+      () =>
+        produceMeteringReceipt(
+          spec,
+          { ...execution, hash: ("0x" + "77".repeat(32)) as typeof execution.hash },
+          identity,
+        ),
       { code: "DELIVERABLE_MISMATCH" },
     );
   });
