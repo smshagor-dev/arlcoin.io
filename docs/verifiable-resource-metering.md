@@ -57,3 +57,41 @@ The test runs a pinned BusyBox CPU/memory workload, reads retained counters, sig
 The approved execution identity (provider original execution versus validator re-execution), receipt transport, historical ERC-8004 pin and signer-rotation policy, replay policy and failure-evidence representation require upstream confirmation. The live watcher, Anvil vote demonstration and complete CI suite are not yet integrated or verified. The file-backed per-validator replay reservation is provisional and must not be represented as the agreed protocol policy.
 
 No Solidity, deployed address, billing, payment or tokenomics change is part of this work.
+
+
+## One-command local Anvil demonstration
+
+The standalone local-chain test runs the compiled ARLToken, ARLJobs and ARLVerifiedEvaluator
+contracts with the repository's existing ERC-8004 bytecode fixture. It covers identity
+registration, provider-signed receipt verification, tampering and registration-pin rejection,
+two validators committing identical composite evidence hashes on chain, approval and settlement.
+
+From a host with Node.js 22.18+, npm, Anvil and Foundry installed:
+
+    npm run demo:metering -w @arl/verifier
+
+The script invokes npm ci, builds the existing contracts and runs
+packages/verifier/test-anvil/metering.anvil.test.ts on local port 8557. It
+does not deploy to Base Mainnet or other public networks. The metering values
+in this test are SYNTHETIC in-process fixtures. The test proves the receipt
+signature and composite on-chain evidence flow only; it does not validate
+physical or kernel-collected CPU/memory usage.
+
+The real host metering acceptance test is separately gated by
+ARL_METERING_CGROUP_ROOT on a compatible Linux cgroup v2/cgroupfs Docker host.
+Both tests still require actual execution and a passing CI record.
+
+### Explicit metered voting API
+
+The optional voteMeteredJob() API checks the current chain job is Submitted,
+that the validator is Accepted, and that the configured spec and submitted
+deliverable are accessible. It verifies a historically pinned ERC-8004 provider
+registration, recomputes the validator's independent re-execution result,
+authenticates the provider meter receipt and reserves the job in the
+provisional replay store before calling the existing vote() ABI with the
+canonical arl-metering-vote/1 composite evidence hash.
+
+A transaction error after replay reservation leaves a fail-closed marker
+requiring explicit operator reconciliation. The production watch loop and
+existing default rejection evidence remain unchanged until the upstream
+registration pin, receipt delivery, retry and authorization policy is agreed.
