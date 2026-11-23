@@ -10,6 +10,7 @@
 import {
   parseAbi,
   parseAbiItem,
+  stringToHex,
   type Account,
   type Address,
   type Chain,
@@ -20,6 +21,13 @@ import {
 } from "viem";
 
 import { checkChain, JobStatus, MemberState } from "./chain.ts";
+import {
+  fetchResearchTask,
+  researchTaskRef,
+  type ModelJudge,
+  type SourceFetcher,
+} from "./research.ts";
+import { buildResearchBundle, BUNDLE_FILES, type SourceFinder } from "./researchDesk.ts";
 import type { Fetcher } from "./inputs.ts";
 import { specHash, type ReexecSpec } from "./spec.ts";
 import { execute, type ExecuteOptions } from "./verify.ts";
@@ -57,6 +65,23 @@ export interface ProvideState {
    * wait for the committee never runs the work twice.
    */
   deliverables?: Record<string, Hex>;
+  /** For research jobs: the proof URI passed with `submit`, by job id. */
+  proofUris?: Record<string, string>;
+}
+
+/**
+ * Research-sources jobs (spec/arl-research/v0.1.0): the desk that writes the brief and where its
+ * files are published. Without it, research jobs are not taken.
+ */
+export interface ResearchDeskDeps {
+  finder: SourceFinder;
+  fetcher: SourceFetcher;
+  judge: ModelJudge;
+  model: { name: string; runtime: string };
+  /** The https folder (ending in a slash) a job's files will be served from. */
+  baseUri(jobId: bigint): string;
+  /** Publishes the files so that `baseUri(jobId) + name` serves each one. */
+  publish(jobId: bigint, files: Record<string, Buffer>): Promise<void>;
 }
 
 /**
@@ -102,7 +127,7 @@ const includes = (list: readonly string[], value: string) =>
 /** Why `policy` refuses the job at time `now` (seconds), or null when the provider may take it. */
 export function provideProblem(
   job: Terms,
-  spec: Pick<ReexecSpec, "container_digest" | "limits">,
+  spec: Pick<ReexecSpec, "container_digest" | "limits"> | null,
   policy: ProvidePolicy,
   now: bigint,
 ): string | null {
@@ -113,6 +138,8 @@ export function provideProblem(
     return "deadline is too close to run, vote and settle";
   if (policy.validators && !job.committee.every((m) => includes(policy.validators ?? [], m)))
     return "committee names a validator this provider does not accept";
+  // A research job runs no container: only the terms above apply.
+  if (spec === null) return null;
   if (policy.images && !includes(policy.images, spec.container_digest))
     return "container image is not on this provider's list";
   if (spec.limits.seconds > policy.maxSeconds) return "spec asks for a longer run than allowed";
@@ -132,6 +159,8 @@ export interface ProvideDeps {
   log?: (event: Record<string, unknown>) => void;
   /** Blocks per `eth_getLogs` call; the RPC's own limit (default LOG_WINDOW). */
   logWindow?: bigint;
+  /** Takes research-sources jobs too when set. */
+  research?: ResearchDeskDeps;
 }
 
 async function discover(deps: ProvideDeps, state: ProvideState, me: Address, jobs: Address) {
@@ -189,6 +218,7 @@ export async function provideStep(deps: ProvideDeps, state: ProvideState): Promi
   });
   const next = await discover(deps, state, me, jobs);
   const deliverables: Record<string, Hex> = { ...state.deliverables };
+  const proofUris: Record<string, string> = { ...state.proofUris };
   const keep: string[] = [];
 
   for (const id of next.jobs) {
@@ -240,6 +270,80 @@ export async function provideStep(deps: ProvideDeps, state: ProvideState): Promi
       }
 
       let deliverable = deliverables[id];
+      if (!deliverable && researchTaskRef(job.description)) {
+        const desk = deps.research;
+        if (!desk) {
+          log({ jobId: id, event: "not-taken", reason: "this provider has no research desk" });
+          continue;
+        }
+        let found: Awaited<ReturnType<typeof fetchResearchTask>>;
+        try {
+          found = await fetchResearchTask(job.description, config.specHash, desk.fetcher);
+        } catch (e) {
+          log({
+            jobId: id,
+            event: "task-unusable",
+            reason: e instanceof Error ? e.message : String(e),
+          });
+          continue;
+        }
+        if (!found) {
+          log({ jobId: id, event: "not-taken", reason: "the task is not a research-sources task" });
+          continue;
+        }
+        const refused = provideProblem(
+          {
+            client: job.client,
+            budget: job.budget,
+            expiredAt: job.expiredAt,
+            committee: config.committee,
+          },
+          null,
+          deps.policy,
+          now,
+        );
+        if (refused) {
+          log({ jobId: id, event: "not-taken", reason: refused });
+          continue;
+        }
+        if (!verdict.providerApproved) {
+          const tx = await write(deps, {
+            address: deps.evaluator,
+            abi: evaluatorAbi,
+            functionName: "approveCommittee",
+            args: [jobId],
+          });
+          log({ jobId: id, event: "committee-approved", tx });
+        }
+        const baseUri = desk.baseUri(jobId);
+        const bundle = await buildResearchBundle({
+          task: found.task,
+          question: found.task.description,
+          chainId: await deps.client.getChainId(),
+          jobs,
+          jobId,
+          baseUri,
+          finder: desk.finder,
+          fetcher: desk.fetcher,
+          judge: desk.judge,
+          model: desk.model,
+        });
+        // The provider runs the same pinned model the validators run: a brief it judges as not
+        // answering would be rejected, so it is not submitted.
+        if (!bundle.answers) {
+          log({
+            jobId: id,
+            event: "not-submitted",
+            reason: "the pinned model says the brief does not answer the question",
+          });
+          continue;
+        }
+        await desk.publish(jobId, bundle.files);
+        deliverable = bundle.deliverable;
+        deliverables[id] = deliverable;
+        proofUris[id] = baseUri + BUNDLE_FILES.proof;
+        log({ jobId: id, event: "researched", deliverable, proof: proofUris[id] });
+      }
       if (!deliverable) {
         // The spec the job commits to, or nothing: a spec that cannot be fetched or does not hash
         // to the committed specHash is never run.
@@ -313,7 +417,8 @@ export async function provideStep(deps: ProvideDeps, state: ProvideState): Promi
         address: jobs,
         abi: jobsAbi,
         functionName: "submit",
-        args: [jobId, deliverable, "0x"],
+        // A research job carries its proof URI, which validators read from this call.
+        args: [jobId, deliverable, proofUris[id] ? stringToHex(proofUris[id]) : "0x"],
       });
       log({ jobId: id, event: "submitted", deliverable, tx });
     } catch (e) {
@@ -324,16 +429,29 @@ export async function provideStep(deps: ProvideDeps, state: ProvideState): Promi
 
   const kept = [...new Set(keep)];
   const keptDeliverables: Record<string, Hex> = {};
+  const keptProofUris: Record<string, string> = {};
   for (const id of kept) {
     const d = deliverables[id];
     if (d) keptDeliverables[id] = d;
+    const u = proofUris[id];
+    if (u) keptProofUris[id] = u;
   }
-  return { fromBlock: next.fromBlock, jobs: kept, deliverables: keptDeliverables };
+  return {
+    fromBlock: next.fromBlock,
+    jobs: kept,
+    deliverables: keptDeliverables,
+    proofUris: keptProofUris,
+  };
 }
 
 /** Reads a saved state; a missing or malformed field is an error, never a silent default. */
 export function parseProvideState(text: string): ProvideState {
-  const raw = JSON.parse(text) as { fromBlock?: unknown; jobs?: unknown; deliverables?: unknown };
+  const raw = JSON.parse(text) as {
+    fromBlock?: unknown;
+    jobs?: unknown;
+    deliverables?: unknown;
+    proofUris?: unknown;
+  };
   if (typeof raw.fromBlock !== "string" || !/^\d+$/.test(raw.fromBlock))
     throw new Error("state: fromBlock must be a decimal string");
   if (!Array.isArray(raw.jobs) || !raw.jobs.every((j) => typeof j === "string" && /^\d+$/.test(j)))
@@ -348,7 +466,17 @@ export function parseProvideState(text: string): ProvideState {
       deliverables[id] = hash as Hex;
     }
   }
-  return { fromBlock: BigInt(raw.fromBlock), jobs: raw.jobs as string[], deliverables };
+  const proofUris: Record<string, string> = {};
+  if (raw.proofUris !== undefined) {
+    if (typeof raw.proofUris !== "object" || raw.proofUris === null)
+      throw new Error("state: proofUris must be an object");
+    for (const [id, uri] of Object.entries(raw.proofUris)) {
+      if (!/^\d+$/.test(id) || typeof uri !== "string" || !/^(https|ipfs):\/\//.test(uri))
+        throw new Error("state: proofUris must map job ids to https or ipfs URIs");
+      proofUris[id] = uri;
+    }
+  }
+  return { fromBlock: BigInt(raw.fromBlock), jobs: raw.jobs as string[], deliverables, proofUris };
 }
 
 export function serializeProvideState(state: ProvideState): string {
@@ -357,6 +485,7 @@ export function serializeProvideState(state: ProvideState): string {
       fromBlock: state.fromBlock.toString(),
       jobs: state.jobs,
       deliverables: state.deliverables ?? {},
+      proofUris: state.proofUris ?? {},
     },
     null,
     2,

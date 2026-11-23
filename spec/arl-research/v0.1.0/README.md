@@ -27,20 +27,26 @@ Nothing on chain changes: the job runs on the same `ARLJobs` and `ARLVerifiedEva
 }
 ```
 
-| Field              | Rule                                                                            |
-| ------------------ | ------------------------------------------------------------------------------- |
-| `version`          | `"arl-research-log/1"`                                                          |
-| `sources`          | 1 to 32 items; unknown fields are refused                                       |
-| `sources[].id`     | integer 1 to 999, unique                                                        |
-| `sources[].url`    | `https://` only                                                                 |
-| `sources[].sha256` | SHA-256 of the fetched bytes at the provider's read time                        |
-| `sources[].quote`  | 20 to 1,000 characters, copied verbatim from the source's readable text         |
+| Field              | Rule                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| `version`          | `"arl-research-log/1"`                                                  |
+| `sources`          | 1 to 32 items; unknown fields are refused                               |
+| `sources[].id`     | integer 1 to 999, unique                                                |
+| `sources[].url`    | `https://` only                                                         |
+| `sources[].sha256` | SHA-256 of the fetched bytes at the provider's read time                |
+| `sources[].quote`  | 20 to 1,000 characters, copied verbatim from the source's readable text |
 
 3. **The proof** (`arl-proof/1`): the brief as `deliverable`, the evidence the task requires
    (`artifact`, `model-verdict`, `logs` for the template), each with its SHA-256.
 4. **The submission**: `ARLJobs.submit(jobId, proofHash, bytes(proofUri))`, called directly by the
    provider. The deliverable is the proof hash; the third argument carries the proof's `https://` or
    `ipfs://` URI, which validators read from the transaction.
+
+A reference provider is in [`packages/verifier/src/researchDesk.ts`](../../../packages/verifier/src/researchDesk.ts):
+it finds sources, quotes one verbatim sentence from each that matches the question, writes the
+brief, runs the same pinned model the validators run, and submits only when that model says the
+brief answers the question. `arl-verifier provide` uses it when the research model and a publish
+folder are set.
 
 ## What a validator checks
 
@@ -52,11 +58,11 @@ deliverable and fits the task (`checkProofAgainstTask`), then fetches the brief 
 their SHA-256 and every source URL itself (public https only, size and time limits). Per
 acceptance rule of the template:
 
-| Rule               | Outcome                                                                                       |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| `sources-resolve`  | `check`: every source cited in the brief is in the log, and every source URL answers 200     |
+| Rule               | Outcome                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `sources-resolve`  | `check`: every source cited in the brief is in the log, and every source URL answers 200                                  |
 | `claims-supported` | `check`: every quote appears in the readable text the validator fetched (case, spacing and typographic quotes normalized) |
-| `answers-question` | `model`: a pinned open model the validator runs says the brief answers the task as asked     |
+| `answers-question` | `model`: a pinned open model the validator runs says the brief answers the task as asked                                  |
 
 A rule the validator cannot check gets no outcome. The vote follows `decideVote`: approve only if
 every rule has an admissible passing outcome; a model verdict is admissible only within the

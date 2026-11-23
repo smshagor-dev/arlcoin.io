@@ -81,6 +81,7 @@ describe("the provider's saved state", () => {
       fromBlock: 60_000_000n,
       jobs: ["7", "9"],
       deliverables: { "7": `0x${"d1".repeat(32)}` as const },
+      proofUris: { "7": "https://example.org/jobs/8453-7/proof.json" },
     };
     assert.deepEqual(parseProvideState(serializeProvideState(state)), state);
   });
@@ -90,6 +91,9 @@ describe("the provider's saved state", () => {
     assert.throws(() => parseProvideState('{"fromBlock":"1","jobs":[7]}'));
     assert.throws(() =>
       parseProvideState('{"fromBlock":"1","jobs":[],"deliverables":{"7":"0x12"}}'),
+    );
+    assert.throws(() =>
+      parseProvideState('{"fromBlock":"1","jobs":[],"proofUris":{"7":"http://x/proof.json"}}'),
     );
   });
 });

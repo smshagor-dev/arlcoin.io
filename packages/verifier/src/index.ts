@@ -11,3 +11,4 @@ export * from "./bundle.ts";
 export * from "./provide.ts";
 export * from "./make.ts";
 export * from "./research.ts";
+export * from "./researchDesk.ts";

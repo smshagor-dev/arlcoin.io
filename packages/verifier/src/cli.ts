@@ -26,7 +26,9 @@
 // `provide` is the provider's side of `watch`: it takes the funded jobs that name this account as
 // provider, approves the committee, runs the spec and submits the result hash once enough
 // committee members have accepted. Its progress is kept in state.json (default
-// .arl-provider-state.json), so a job's work runs once across restarts.
+// .arl-provider-state.json), so a job's work runs once across restarts. With the research model
+// (ARL_RESEARCH_MODEL_*) and ARL_RESEARCH_PUBLISH_DIR / ARL_RESEARCH_JOBS_URI set, it also takes
+// research-sources jobs: the research desk writes the brief, publishes it and submits its proof.
 //
 //   node src/cli.ts bundle <rpc> <evaluator> <jobId> <fromBlock>        > evidence.json
 //   node src/cli.ts verify-bundle <rpc> <evidence.json> <fromBlock>
@@ -63,7 +65,9 @@ import { nodeTestSpec } from "./make.ts";
 import { parseSpec, specHash } from "./spec.ts";
 import { decide, execute } from "./verify.ts";
 import { buildBundle, verifyBundle, type EvidenceBundle } from "./bundle.ts";
-import { openAiCompatibleJudge } from "./research.ts";
+import { gitPublisher } from "./publish.ts";
+import { networkSourceFetcher, openAiCompatibleJudge } from "./research.ts";
+import { wikipediaFinder } from "./researchDesk.ts";
 import { DEFAULT_ACCEPT_POLICY, step, type AcceptPolicy, type WatchState } from "./watch.ts";
 
 /** viem chain for signing: Base Mainnet as is, otherwise Base Sepolia's settings with the id. */
@@ -394,6 +398,7 @@ async function main(argv: readonly string[]): Promise<void> {
         specFetcher: networkFetcher,
         logWindow: BigInt(process.env.ARL_LOG_WINDOW ?? "5000"),
         policy,
+        ...researchDeskFromEnv(process.env, await client.getChainId()),
         log: (e: Record<string, unknown>) => {
           print({ at: new Date().toISOString(), ...e });
         },
@@ -433,4 +438,30 @@ function researchJudgeFromEnv(env: NodeJS.ProcessEnv) {
     );
   }
   return { judge: openAiCompatibleJudge({ baseUrl, model, weightsSha256 }) };
+}
+
+/**
+ * The provider's research desk, when the model (ARL_RESEARCH_MODEL_*) and a place to publish are
+ * set: ARL_RESEARCH_PUBLISH_DIR (a git checkout of the served branch) and ARL_RESEARCH_JOBS_URI
+ * (the https URL of its jobs/ folder, ending in a slash). Without them research jobs are skipped.
+ */
+function researchDeskFromEnv(env: NodeJS.ProcessEnv, chainId: number) {
+  const { judge } = researchJudgeFromEnv(env);
+  const dir = env.ARL_RESEARCH_PUBLISH_DIR?.trim();
+  const jobsUri = env.ARL_RESEARCH_JOBS_URI?.trim();
+  if (!judge || !dir || !jobsUri) return {};
+  const publisher = gitPublisher({ dir, jobsUri, chainId });
+  return {
+    research: {
+      finder: wikipediaFinder,
+      fetcher: networkSourceFetcher,
+      judge,
+      model: {
+        name: env.ARL_RESEARCH_MODEL?.trim() ?? "",
+        runtime: env.ARL_RESEARCH_MODEL_RUNTIME?.trim() ?? "ollama",
+      },
+      baseUri: publisher.baseUri,
+      publish: publisher.publish,
+    },
+  };
 }
