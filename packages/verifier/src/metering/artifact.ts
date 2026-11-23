@@ -2,10 +2,10 @@
 // This is deliberately NOT a network transport or a registry authorization mechanism.
 // The caller must obtain the expected SHA-256 from a separately authenticated source.
 
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { constants } from "node:fs";
-import { open } from "node:fs/promises";
-import { isAbsolute } from "node:path";
+import { link, open, unlink } from "node:fs/promises";
+import { dirname, isAbsolute } from "node:path";
 
 import type { Hex } from "viem";
 
@@ -20,6 +20,12 @@ export const MAX_SIGNED_METERING_ARTIFACT_BYTES = 65_536;
 export interface PinnedMeteringArtifact {
   signed: SignedMeteringReceipt;
   sha256: Hex;
+}
+
+export interface PublishedMeteringArtifact {
+  /** SHA-256 over the EXACT published UTF-8 bytes (including final newline). */
+  sha256: Hex;
+  byteLength: number;
 }
 
 function artifactError(message: string): never {
@@ -111,4 +117,63 @@ export async function readPinnedMeteringArtifact(
     return artifactError("signed receipt is not valid UTF-8");
   }
   return { signed: parseSignedMeteringReceiptJson(json), sha256 };
+}
+
+
+/**
+ * Publish a complete signed receipt as one durable, no-overwrite filesystem
+ * operation. An exclusive temporary file is fsynced first; a same-directory
+ * hard link exposes the completed artifact atomically without replacing an
+ * existing target. This function does not claim an authenticated remote
+ * transport: the SHA-256 pin must be conveyed independently.
+ */
+export async function publishSignedMeteringArtifact(
+  destination: string,
+  signed: SignedMeteringReceipt,
+): Promise<PublishedMeteringArtifact> {
+  if (typeof destination !== "string" || !isAbsolute(destination) || destination.includes("\0")) {
+    return artifactError("artifact destination must be an absolute trusted path");
+  }
+  const envelope = parseSignedMeteringReceiptJson(JSON.stringify(signed));
+  const bytes = Buffer.from(JSON.stringify(envelope) + "\n", "utf8");
+  if (bytes.byteLength > MAX_SIGNED_METERING_ARTIFACT_BYTES) {
+    return artifactError("signed receipt exceeds local artifact size limit");
+  }
+  const sha256 = ("0x" + createHash("sha256").update(bytes).digest("hex")) as Hex;
+  const parent = dirname(destination);
+  const temporary = destination + "." + randomBytes(12).toString("hex") + ".tmp";
+  let file;
+  let linked = false;
+  try {
+    // The output directory must be provisioned and trusted by the host operator.
+    // O_CREAT | O_EXCL denies existing file/symlink replacement.
+    file = await open(temporary, "wx", 0o600);
+    await file.writeFile(bytes);
+    await file.sync();
+    await file.close();
+    file = undefined;
+    await link(temporary, destination);
+    linked = true;
+    const dir = await open(parent, "r");
+    try {
+      await dir.sync();
+    } finally {
+      await dir.close();
+    }
+    return { sha256, byteLength: bytes.byteLength };
+  } catch (error) {
+    if (error instanceof MeteringReceiptError) throw error;
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      return artifactError("receipt destination already exists; refusing overwrite");
+    }
+    return artifactError("failed to durably publish signed receipt");
+  } finally {
+    if (file !== undefined) await file.close().catch(() => undefined);
+    await unlink(temporary).catch(() => undefined);
+    // If fsync failed after the atomic link, leave the complete published file
+    // in place rather than risk deleting evidence another process has observed.
+    if (linked) {
+      // Intentional no-op: the caller receives an error and must reconcile.
+    }
+  }
 }
