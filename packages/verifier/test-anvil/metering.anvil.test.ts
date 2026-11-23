@@ -73,7 +73,8 @@ const registryAbi = parseAbi([
   "event Registered(uint256 indexed agentId,string agentURI,address indexed owner)",
 ]);
 const votedEvent = parseAbiItem(
-  "event Voted(uint256 indexed jobId,address indexed validator,bool approve,bytes32 deliverable,bytes32 evidence)",
+  "event Voted(uint256 indexed jobId,address indexed validator,bool approve," +
+    "bytes32 deliverable,bytes32 evidence)",
 );
 const SPEC = parseSpec({
   version: "arl-reexec/1",
