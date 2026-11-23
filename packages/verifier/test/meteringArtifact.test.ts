@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { constants, readFileSync } from "node:fs";
 import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -33,7 +33,12 @@ function pin(bytes: Uint8Array): Hex {
   return ("0x" + createHash("sha256").update(bytes).digest("hex")) as Hex;
 }
 
-describe("bounded pinned local receipt artifact transport", () => {
+const supportsNoFollow =
+  typeof constants.O_NOFOLLOW === "number" && constants.O_NOFOLLOW !== 0;
+
+describe("bounded pinned local receipt artifact transport", {
+  skip: !supportsNoFollow && "requires O_NOFOLLOW filesystem support",
+}, () => {
   it("loads an exactly pinned signed receipt and permits independent EIP-712 verification", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-artifact-"));
     try {
