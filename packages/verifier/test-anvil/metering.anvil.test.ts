@@ -191,6 +191,24 @@ before(async () => {
   for (const [index, value] of Object.entries(fixture.identityRegistry.storage)) {
     await testClient.setStorageAt({ address: identity, index: index as Hex, value });
   }
+  // ERC-8004 assigns the first minted agent ID 0. The existing ARL evaluator
+  // treats providerAgentId=0 as the unbound sentinel, so reserve token 0 for
+  // this isolated fixture before registering the actual provider as token 1.
+  const reservedHash = await wallet(client).writeContract({
+    address: identity,
+    abi: registryAbi,
+    functionName: "register",
+    args: ["data:application/json;base64,e30="],
+  });
+  const reservedReceipt = await rpc.waitForTransactionReceipt({ hash: reservedHash });
+  assert.equal(reservedReceipt.status, "success");
+  const reservedEvents = parseEventLogs({
+    abi: registryAbi,
+    logs: reservedReceipt.logs,
+    eventName: "Registered",
+  });
+  assert.equal(reservedEvents[0]?.args.agentId, 0n);
+
   const regHash = await wallet(provider).writeContract({
     address: identity,
     abi: registryAbi,
@@ -207,6 +225,7 @@ before(async () => {
   assert.equal(events.length, 1);
   assert.ok(events[0]);
   agentId = events[0].args.agentId;
+  assert.equal(agentId, 1n, "meter provider requires a nonzero configured agent ID");
 
   const holder = client.address;
   token = await deploy("ARLToken", [{
