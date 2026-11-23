@@ -321,6 +321,16 @@ describe("metered votes against the real local evaluator", () => {
         }),
         { code: "SIGNER_MISMATCH" },
       );
+      const impossibleMemory = {
+        ...signed,
+        receipt: { ...signed.receipt, memory_peak_bytes: 200 * 1024 * 1024 },
+      };
+      await assert.rejects(
+        () => voteMeteredJob({
+          ...common, wallet: wallet(v1), receipt: impossibleMemory, replay: firstStore,
+        }),
+        { code: "INVALID_MEASUREMENT" },
+      );
       assert.equal((await readJob(rpc, evaluator, jobId, v1.address)).memberState, 3);
       await assert.rejects(
         () => voteMeteredJob({
