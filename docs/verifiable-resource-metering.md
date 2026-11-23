@@ -30,6 +30,16 @@ The existing execute() API may return optional Execution.metering. This is separ
 
 Only the trusted provider-side runtime should call produceMeteringReceipt(spec, execution, identity) with a separate provider meter private key. The producer requires an accepted, zero-exit run, a matching spec and result commitment, and actual metering fields. It creates cryptographically random run_id and nonce and signs an EIP-712 message.
 
+For a **local, file-based prototype handoff**, the validator can call
+readPinnedMeteringArtifact(absolutePath, expectedSha256). It uses a
+size-bounded positional read (maximum 64 KiB), requires a regular file,
+refuses final-component symlinks and unsupported no-symlink hosts, checks
+the independently supplied exact-file SHA-256, and parses strict UTF-8 JSON.
+The imported envelope is still untrusted until the historical registration
+resolver authenticates its meter signer and EIP-712 verification succeeds.
+This is **not** an approved provider receipt network transport and the
+source of the expected artifact digest still needs an authoritative policy.
+
 The validator never holds the provider's meter private key. Signed measurements prove integrity and attribution under the trusted-host assumption, not physical resource consumption against an administrator-controlled host.
 
 An **opt-in provisional resolver** in packages/verifier/src/metering/registration.ts reads the historical evaluator identity registry address, the job's provider and configured ERC-8004 provider agent ID, and the agent owner and tokenURI at a caller-selected registrationBlock. It requires a trusted external SHA-256 commitment to the *exact registration JSON bytes* and checks the registration's identity cross-reference and proposed extensions["arl-metering-receipt/1"].signer field. It rejects missing registration, wrong owner, mutable substituted metadata, malformed JSON, wrong chain and wrong job context. The verifyRegisteredMeteringReceipt wrapper resolves the signer first, then checks the EIP-712 receipt. It does not trust a self-declared signer or an HTTPS URL alone.
