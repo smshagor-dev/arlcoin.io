@@ -117,7 +117,8 @@ async function preflightMeteredJob(input: PreflightInput): Promise<{
   const { expectedSigner } = await resolveMeterSigner(input.client, input.registration);
   // A provider cannot authorize a measurement by registering a key AFTER the
   // reported run began. The chain block timestamp is independent of host wall
-  // time, although second-level timestamps cannot prove within-second order.
+  // time. Allow 120 seconds of clock skew between independently maintained
+  // clocks; this does not prove exact ordering within that tolerance.
   let registrationTimestamp: bigint;
   try {
     const block = await input.client.getBlock({
@@ -128,12 +129,6 @@ async function preflightMeteredJob(input: PreflightInput): Promise<{
     throw new MeteringReceiptError(
       "REGISTRATION_UNAVAILABLE",
       "cannot determine the timestamp of the trusted registration snapshot",
-    );
-  }
-  if (registrationTimestamp > BigInt(input.receipt.receipt.started_at)) {
-    throw new MeteringReceiptError(
-      "REGISTRATION_UNAVAILABLE",
-      "provider meter key was registered after the claimed workload started",
     );
   }
   const context: MeteringVerificationContext = {
@@ -154,6 +149,12 @@ async function preflightMeteredJob(input: PreflightInput): Promise<{
     maxFutureSkewSeconds: input.maxFutureSkewSeconds ?? 5,
   };
   await verifyMeteringReceipt(input.receipt, context);
+  if (registrationTimestamp > BigInt(input.receipt.receipt.started_at) + 120n) {
+    throw new MeteringReceiptError(
+      "REGISTRATION_UNAVAILABLE",
+      "registered signer snapshot postdates the claimed workload beyond clock tolerance",
+    );
+  }
   return { deliverable: job.deliverable, context };
 }
 
