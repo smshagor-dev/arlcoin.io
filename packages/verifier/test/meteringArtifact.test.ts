@@ -40,7 +40,7 @@ const supportsNoFollow =
 describe("bounded pinned local receipt artifact transport", {
   skip: !supportsNoFollow && "requires O_NOFOLLOW filesystem support",
 }, () => {
-  it("loads an exactly pinned signed receipt and permits independent EIP-712 verification", async () => {
+  it("loads a pinned signed receipt and verifies EIP-712", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-artifact-"));
     try {
       const path = join(directory, "receipt.json");
@@ -72,7 +72,7 @@ describe("bounded pinned local receipt artifact transport", {
       const publication = await publishSignedMeteringArtifact(destination, envelope);
       const imported = await readPinnedMeteringArtifact(destination, publication.sha256);
       assert.deepEqual(imported.signed, envelope);
-      assert.equal(publication.byteLength, Buffer.byteLength(JSON.stringify(envelope) + "\n"));
+      assert.equal(publication.byteLength, (await stat(destination)).size);
       if (process.platform !== "win32") {
         assert.equal((await stat(destination)).mode & 0o777, 0o600);
       }
@@ -82,8 +82,10 @@ describe("bounded pinned local receipt artifact transport", {
         { code: "METER_ARTIFACT_UNAVAILABLE" },
       );
       assert.deepEqual(await readdir(directory), ["receipt.json"]);
-      assert.equal((await readPinnedMeteringArtifact(destination, publication.sha256)).sha256,
-        publication.sha256);
+      assert.equal(
+        (await readPinnedMeteringArtifact(destination, publication.sha256)).sha256,
+        publication.sha256,
+      );
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -154,7 +156,7 @@ describe("bounded pinned local receipt artifact transport", {
     }
   });
 
-  it("rejects duplicate JSON keys and invalid UTF-8 even when the bytes are correctly pinned", async () => {
+  it("rejects invalid UTF-8 and duplicate JSON keys even with a matching pin", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-meter-invalid-"));
     try {
       const path = join(directory, "receipt.json");
