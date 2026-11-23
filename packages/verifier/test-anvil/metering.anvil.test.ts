@@ -33,6 +33,7 @@ import {
   parseSpec,
   produceMeteringReceipt,
   readJob,
+  MemberState,
   specHash,
   voteMeteredJob,
   type ContainerRunner,
@@ -342,7 +343,7 @@ describe("metered votes against the real local evaluator", () => {
         }),
         { code: "INVALID_MEASUREMENT" },
       );
-      assert.equal((await readJob(rpc, evaluator, jobId, v1.address)).memberState, 3);
+      assert.equal((await readJob(rpc, evaluator, jobId, v1.address)).memberState, MemberState.Accepted);
       await assert.rejects(
         () => voteMeteredJob({
           ...common, wallet: wallet(v1), receipt: signed, replay: firstStore,
