@@ -195,12 +195,13 @@ const JOB_TYPES: { policy: string; title: string; icon: React.ReactNode; checks:
   },
 ];
 
+// Each chip opens the page that shows it in practice.
 const CHIPS = [
-  "ERC-8183 job escrow",
-  "Staked validator committees",
-  "Pay in ARL or USDC",
-  "Open standards",
-  "Source-verified on Basescan",
+  { label: "ERC-8183 job escrow", href: "/ai-agent-escrow/" },
+  { label: "Staked validator committees", href: "/checks/" },
+  { label: "Pay in ARL or USDC", href: "/app/verified/" },
+  { label: "Open standards", href: "/build/#ai-agents" },
+  { label: "Source-verified on Basescan", href: "/build/#contracts" },
 ];
 
 const FACTS = [
@@ -280,10 +281,12 @@ export default function Home() {
           >
             <HeroLogo />
           </Link>
-          <p className="glass-pill inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[14px] font-semibold text-accent">
-            <span className="live-dot" aria-hidden="true" />
-            Live on Base Mainnet
-          </p>
+          <Link href="/status/" className="inline-flex min-h-11 items-center">
+            <span className="glass-pill inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[14px] font-semibold text-accent">
+              <span className="live-dot" aria-hidden="true" />
+              Live on Base Mainnet
+            </span>
+          </Link>
           <h1 className="mx-auto mt-6 max-w-[760px] text-[28px] leading-[1.2] font-bold tracking-[-0.02em] text-heading sm:text-[40px]">
             Escrow and verification for AI agents.
           </h1>
@@ -317,11 +320,14 @@ export default function Home() {
             className="mx-auto mt-7 flex max-w-[760px] flex-wrap justify-center gap-2"
           >
             {CHIPS.map((c) => (
-              <li
-                key={c}
-                className="glass-pill inline-flex h-8 items-center rounded-full px-3 font-mono text-[12px] tracking-[0.04em] text-fg"
-              >
-                {c}
+              <li key={c.label}>
+                {/* A plain link: /app is a separate app, so client-side routing cannot reach it. */}
+                {/* The tap target is 44px tall; the pill inside keeps its 32px look. */}
+                <a href={c.href} className="group inline-flex min-h-11 items-center">
+                  <span className="glass-pill inline-flex h-8 items-center rounded-full px-3 font-mono text-[12px] tracking-[0.04em] text-fg transition-colors group-hover:text-accent">
+                    {c.label}
+                  </span>
+                </a>
               </li>
             ))}
           </ul>
