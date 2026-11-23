@@ -21,6 +21,7 @@ node -e 'const [major, minor] = process.versions.node.split(".").map(Number); if
 
 # A clean install ensures the viem and TypeScript versions match the lockfile.
 npm ci
+git submodule update --init --recursive
 (
   cd contracts
   forge build --skip test --skip script
