@@ -29,7 +29,7 @@ export function parseCgroupCpuStat(contents: string): bigint {
   for (const line of contents.trim().split("\n")) {
     const trimmed = line.trim();
     if (trimmed === "") continue;
-    const match = /^([a-z_]+) ([0-9]+)$/.exec(trimmed);
+    const match = /^([a-z0-9_.]+) ([0-9]+)$/.exec(trimmed);
     if (match === null) {
       throw new MeteringReceiptError("METER_COUNTERS_UNAVAILABLE", "invalid cpu.stat line");
     }
