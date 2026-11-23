@@ -18,6 +18,10 @@ const registry: Address = "0x3000000000000000000000000000000000000003";
 const provider: Address = "0x4000000000000000000000000000000000000004";
 const signer: Address = "0x281c6e8b0cc09df345fb88c4cb30201d561a5c5e";
 
+function pin(bytes: Uint8Array): Hex {
+  return ("0x" + createHash("sha256").update(bytes).digest("hex")) as Hex;
+}
+
 const document = {
   type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   name: "Registered provider",
@@ -33,16 +37,23 @@ function snapshot(raw: unknown = document): MeterRegistrationSnapshot {
     jobId: 7n,
     registrationBlock: 42n,
     registrationBytes: bytes,
-    pinnedRegistrationSha256: ("0x" +
-      createHash("sha256").update(bytes).digest("hex")) as MeterRegistrationSnapshot["pinnedRegistrationSha256"],
+    pinnedRegistrationSha256: pin(bytes),
   };
 }
 
-function chain(options: { owner?: Address; provider?: Address; agentId?: bigint; uri?: string } = {}) {
+function chain(
+  options: { owner?: Address; provider?: Address; agentId?: bigint; uri?: string } = {},
+) {
   const calls: { functionName: string; blockNumber?: bigint }[] = [];
   const client = {
     getChainId: async () => 31337,
-    readContract: async ({ functionName, blockNumber }: { functionName: string; blockNumber?: bigint }) => {
+    readContract: async ({
+      functionName,
+      blockNumber,
+    }: {
+      functionName: string;
+      blockNumber?: bigint;
+    }) => {
       calls.push({ functionName, blockNumber });
       if (functionName === "identity") return registry;
       if (functionName === "jobs") return jobs;
@@ -59,7 +70,7 @@ function chain(options: { owner?: Address; provider?: Address; agentId?: bigint;
 }
 
 describe("pinned historical ERC-8004 meter registration", () => {
-  it("requires matching provider, agent, registry, on-chain URI and signed document pin", async () => {
+  it("binds signer to historical provider, agent, registry and document pin", async () => {
     const { client, calls } = chain();
     const resolved = await resolveMeterSigner(client, snapshot());
     assert.equal(resolved.expectedSigner, signer);
@@ -117,27 +128,27 @@ describe("pinned historical ERC-8004 meter registration", () => {
     const invalid = {
       ...snapshot(),
       registrationBytes: bytes,
-      pinnedRegistrationSha256: ("0x" + createHash("sha256").update(bytes).digest("hex")) as MeterRegistrationSnapshot["pinnedRegistrationSha256"],
+      pinnedRegistrationSha256: pin(bytes),
     };
     await assert.rejects(() => resolveMeterSigner(client, invalid), {
       code: "REGISTRATION_UNAVAILABLE",
     });
   });
 
-  it("rejects missing a trusted external content hash pin before any on-chain lookups", async () => {
+  it("rejects missing a trusted pin before any on-chain lookups", async () => {
     const { client, calls } = chain();
     await assert.rejects(
       () =>
         resolveMeterSigner(client, {
           ...snapshot(),
-          pinnedRegistrationSha256: ("0x" + "0".repeat(63)) as MeterRegistrationSnapshot["pinnedRegistrationSha256"],
+          pinnedRegistrationSha256: ("0x" + "0".repeat(63)) as Hex,
         }),
       { code: "REGISTRATION_UNAVAILABLE" },
     );
     assert.equal(calls.length, 0);
   });
 
-  it("independently verifies a signed test-vector receipt using the pinned registration", async () => {
+  it("verifies the signed receipt vector using pinned registration", async () => {
     const fixture = JSON.parse(
       readFileSync(
         new URL("../../../spec/arl-metering-receipt/v0.1.0/vectors.json", import.meta.url),
