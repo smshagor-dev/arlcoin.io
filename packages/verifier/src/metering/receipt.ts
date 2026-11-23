@@ -51,6 +51,10 @@ export interface MeteringVerificationContext {
   expectedSigner: Address;
   maxElapsedNs?: number;
   maxMemoryBytes?: number;
+  /** Optional verification-time freshness policy. Omit only for explicit historical audits. */
+  nowSeconds?: number;
+  maxReceiptAgeSeconds?: number;
+  maxFutureSkewSeconds?: number;
 }
 
 export interface VerifiedMeteringReceipt {
@@ -147,7 +151,12 @@ function address(value: unknown, field: string): Address {
 }
 
 function jobId(value: unknown): string {
-  if (typeof value !== "string" || !JOB_ID.test(value) || BigInt(value) > UINT256_MAX) {
+  if (
+    typeof value !== "string" ||
+    value.length > 78 ||
+    !JOB_ID.test(value) ||
+    BigInt(value) > UINT256_MAX
+  ) {
     return fail("MALFORMED_RECEIPT", "job_id must be a canonical uint256 decimal string");
   }
   return value;
@@ -427,6 +436,29 @@ export async function verifyMeteringReceipt(
   }
   if (context.maxMemoryBytes !== undefined && receipt.memory_peak_bytes > context.maxMemoryBytes) {
     fail("INVALID_MEASUREMENT", "peak memory exceeds configured limit");
+  }
+  if (
+    context.nowSeconds === undefined &&
+    (context.maxReceiptAgeSeconds !== undefined ||
+      context.maxFutureSkewSeconds !== undefined)
+  ) {
+    fail("INVALID_TIMESTAMP", "freshness limits require nowSeconds");
+  }
+  if (context.nowSeconds !== undefined) {
+    const now = integer(context.nowSeconds, "nowSeconds");
+    const skew = integer(context.maxFutureSkewSeconds ?? 0, "maxFutureSkewSeconds");
+    if (
+      BigInt(receipt.started_at) > BigInt(now) + BigInt(skew) ||
+      BigInt(receipt.finished_at) > BigInt(now) + BigInt(skew)
+    ) {
+      fail("INVALID_TIMESTAMP", "metering receipt is in the future");
+    }
+    if (context.maxReceiptAgeSeconds !== undefined) {
+      const maxAge = integer(context.maxReceiptAgeSeconds, "maxReceiptAgeSeconds");
+      if (BigInt(now) - BigInt(receipt.finished_at) > BigInt(maxAge)) {
+        fail("RECEIPT_EXPIRED", "metering receipt exceeds freshness window");
+      }
+    }
   }
   if (typeof context.expectedSigner !== "string" ||
       !/^0x[0-9a-fA-F]{40}$/.test(context.expectedSigner)) {
