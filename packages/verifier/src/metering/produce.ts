@@ -54,7 +54,9 @@ export async function produceMeteringReceipt(
   const receipt: MeteringReceipt = {
     version: "arl-metering-receipt/1",
     chain_id: identity.chainId,
-    evaluator_address: identity.evaluatorAddress,
+    // Ethereum clients may return EIP-55 checksummed addresses; the canonical
+    // signed receipt format intentionally requires lowercase hex.
+    evaluator_address: identity.evaluatorAddress.toLowerCase() as Address,
     job_id: identity.jobId,
     spec_hash: computedSpecHash,
     deliverable_hash: execution.hash,
