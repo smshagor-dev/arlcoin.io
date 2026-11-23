@@ -242,6 +242,12 @@ export class MeteredDockerRunner implements ContainerRunner {
       // This parent persists even after Docker destroys its child cgroup.
       // Never replace these values with sampled docker stats or Node.js usage.
       const counters = await readCgroupV2Counters(parent);
+      if (counters.memoryPeakBytes === 0) {
+        throw new MeteringReceiptError(
+          "METER_COUNTERS_UNAVAILABLE",
+          "container did not produce observable hierarchical memory accounting",
+        );
+      }
       if (exitCode !== 0) return { exitCode, timedOut: false };
 
       return {
