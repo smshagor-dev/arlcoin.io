@@ -32,6 +32,7 @@ import {
   executeAndVoteMeteredJob,
   FileMeteringReplayStore,
   readPinnedMeteringArtifact,
+  publishSignedMeteringArtifact,
   parseSpec,
   produceMeteringReceipt,
   readJob,
@@ -341,15 +342,12 @@ describe("metered votes against the real local evaluator", () => {
       // Standalone local receipt handoff: no unapproved network transport and no
       // validator access to the provider private key.
       const artifactPath = join(directory, "provider-receipt.json");
-      const artifactBytes = Buffer.from(JSON.stringify(signed) + "\n");
-      await writeFile(artifactPath, artifactBytes, { mode: 0o600 });
-      const artifactSha256 = (
-        "0x" + createHash("sha256").update(artifactBytes).digest("hex")
-      ) as Hex;
+      const publication = await publishSignedMeteringArtifact(artifactPath, signed);
       const { signed: delivered } = await readPinnedMeteringArtifact(
         artifactPath,
-        artifactSha256,
+        publication.sha256,
       );
+      assert.ok(publication.byteLength > 0);
       assert.equal(delivered.signature, signed.signature);
       const common = {
         client: rpc,
