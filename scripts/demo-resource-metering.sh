@@ -21,6 +21,11 @@ node -e 'const [major, minor] = process.versions.node.split(".").map(Number); if
 
 # A clean install ensures the viem and TypeScript versions match the lockfile.
 npm ci
+# The demo must not hide TypeScript, lint, formatting, or receipt unit failures.
+npm run typecheck
+npm run lint
+npm run format:check
+npm test -w @arl/verifier
 git submodule update --init --recursive
 (
   cd contracts
