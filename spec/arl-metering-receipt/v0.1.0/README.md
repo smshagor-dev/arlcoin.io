@@ -155,7 +155,9 @@ The invalid fixtures supply the **expected rejection category** to be implemente
 
 Expected verifier error categories: `MALFORMED_RECEIPT`, `UNSUPPORTED_VERSION`, `MISSING_FIELD`, `UNSAFE_INTEGER`, `INVALID_MEASUREMENT`, `INVALID_TIMESTAMP`, `INVALID_GPU_METRICS`, `UNSUPPORTED_METER_SOURCE`, `REGISTRATION_UNAVAILABLE`, `SIGNER_MISMATCH`, `SIGNATURE_INVALID`, `CHAIN_MISMATCH`, `EVALUATOR_MISMATCH`, `JOB_MISMATCH`, `SPEC_MISMATCH`, `DELIVERABLE_MISMATCH`, `REPLAY_DETECTED`, `COMPOSITE_MISMATCH`.
 
-Negative tests must also cover malleable/high-S signatures, duplicate JSON keys, duplicate receipts, nonce collisions, overflow, missing metadata, unverifiable registry updates, and unauthenticated HTTPS registration files. JSON parsers that accept duplicate keys cannot merely accept the last value; raw parsing or duplicate-key-aware validation is required.
+Negative tests must also cover malleable/high-S signatures, duplicate JSON keys, duplicate receipts, nonce collisions, overflow, missing metadata, unverifiable registry updates, and unauthenticated HTTPS registration files.
+
+**ECDSA diagnostic ordering:** A changed receipt payload generally recovers a *different* public key from the original signature, so the independent verifier reports `SIGNER_MISMATCH` for those cases. `SIGNATURE_INVALID` is reserved for nonrecoverable, malformed, high-S or invalid-recovery signatures. This distinction is diagnostic, not a difference in acceptance: both fail closed. JSON parsers that accept duplicate keys cannot merely accept the last value; raw parsing or duplicate-key-aware validation is required.
 
 ## 9. Verification boundary and rollout
 
