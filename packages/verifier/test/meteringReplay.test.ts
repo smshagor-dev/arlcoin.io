@@ -40,9 +40,9 @@ describe("durable provisional job-level replay reservation", () => {
   it("rejects a repeated receipt after re-creating the store", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-replay-"));
     try {
-      const first = new FileMeteringReplayStore(directory);
+      const first = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
       await first.consume(verified());
-      const restarted = new FileMeteringReplayStore(directory);
+      const restarted = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
       await assert.rejects(() => restarted.consume(verified()), { code: "REPLAY_DETECTED" });
       assert.equal((await readdir(directory)).length, 1);
     } finally {
@@ -53,7 +53,7 @@ describe("durable provisional job-level replay reservation", () => {
   it("allows exactly one concurrent reservation of the same job", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-replay-concurrent-"));
     try {
-      const first = new FileMeteringReplayStore(directory);
+      const first = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
       const results = await Promise.allSettled(
         Array.from({ length: 12 }, () => first.consume(verified())),
       );
@@ -76,7 +76,7 @@ describe("durable provisional job-level replay reservation", () => {
   it("rejects a different nonce or run ID for an already reserved job", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-replay-scope-"));
     try {
-      const store = new FileMeteringReplayStore(directory);
+      const store = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
       await store.consume(verified());
       await assert.rejects(
         () => store.consume(verified({ nonce: ("0x" + "55".repeat(32)) as MeteringReceipt["nonce"] })),
@@ -88,6 +88,10 @@ describe("durable provisional job-level replay reservation", () => {
       );
       await store.consume(verified({ job_id: "8" }));
       await store.consume(verified({ chain_id: 8453 }));
+      await new FileMeteringReplayStore(
+        directory,
+        "0x8888888888888888888888888888888888888888",
+      ).consume(verified());
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
