@@ -101,6 +101,17 @@ Both tests still require actual execution and a passing CI record.
 
 ### Explicit metered voting API
 
+The recommended **opt-in validator workflow** is
+`executeAndVoteMeteredJob({ client, wallet, evaluator, jobId, spec, receipt,
+registration, replay, maxReceiptAgeSeconds, execution })`. It verifies the
+submitted job, registered signer and signed receipt **before** re-executing
+the pinned specification. A real validator must supply the isolated
+`ContainerRunner` and input fetcher in `execution`. The function
+rechecks the live job after `execute()` and then submits the composite
+evidence using the existing vote ABI. Rejected or expired receipts never
+start a job container. Closed vote windows and expired jobs are rejected
+before consuming replay state.
+
 The optional voteMeteredJob() API checks the current chain job is Submitted,
 that the validator is Accepted, and that the configured spec and submitted
 deliverable are accessible. It verifies a historically pinned ERC-8004 provider
