@@ -9,7 +9,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { createWalletClient, http, publicActions } from "viem";
 import type { Address } from "viem";
-import { useAccount, useWalletClient, useWriteContract } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import {
   AmountForm,

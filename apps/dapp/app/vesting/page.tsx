@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { zeroAddress } from "viem";
-import { useAccount, useBlockNumber, useReadContracts, useWriteContract } from "wagmi";
+import { useAccount, useBlockNumber, useReadContracts } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Arl, Facts, PageTitle, RequireWallet, Stat, useChainTime } from "~~/components/arl/ui";
 import {

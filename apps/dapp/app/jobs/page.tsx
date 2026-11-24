@@ -13,7 +13,8 @@ import {
   parseEventLogs,
 } from "viem";
 import type { Address, Hex } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Arl, Facts, PageTitle, RequireWallet, Stat, useChainTime } from "~~/components/arl/ui";
 import { useArlServices } from "~~/hooks/arl/useArlServices";

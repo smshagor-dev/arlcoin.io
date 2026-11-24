@@ -2,13 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { erc20Abi, formatUnits, parseUnits, type Address } from "viem";
-import {
-  useAccount,
-  usePublicClient,
-  useReadContract,
-  useSwitchChain,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useSwitchChain } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Facts, PageTitle, RequireWallet, Stat } from "~~/components/arl/ui";
 import {

@@ -13,7 +13,8 @@ import type { CompiledCircuit } from "@noir-lang/noir_js";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { createWalletClient, http, parseEventLogs } from "viem";
-import { useAccount, usePublicClient, useSignMessage, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useSignMessage } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Facts, NotLiveYet, PageTitle, RequireWallet, Stat } from "~~/components/arl/ui";
 import localContracts from "~~/contracts/localContracts";

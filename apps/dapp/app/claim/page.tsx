@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAccount, useReadContracts, useWriteContract } from "wagmi";
+import { useAccount, useReadContracts } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Arl, Facts, PageTitle, RequireWallet, Stat, useChainTime } from "~~/components/arl/ui";
 import { ARL, ARL_CHAIN_ID } from "~~/lib/contracts";

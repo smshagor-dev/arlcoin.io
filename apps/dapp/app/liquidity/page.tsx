@@ -8,8 +8,8 @@ import {
   useReadContract,
   useReadContracts,
   useSwitchChain,
-  useWriteContract,
 } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Arl, Facts, PageTitle, RequireWallet, Stat, useChainTime } from "~~/components/arl/ui";
 import { formatDate, timeLeft } from "~~/lib/format";

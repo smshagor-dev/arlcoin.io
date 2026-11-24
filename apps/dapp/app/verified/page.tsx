@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { erc20Abi, formatUnits, parseEventLogs, parseUnits } from "viem";
 import type { Address, Hex } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import {
   AmountForm,

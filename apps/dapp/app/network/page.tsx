@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatUnits, isAddress, parseEventLogs } from "viem";
 import type { Address } from "viem";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
+import { useWriteContract } from "~~/hooks/useWriteContract";
 
 import { Facts, PageTitle, RequireWallet, Stat } from "~~/components/arl/ui";
 import { useArlServices } from "~~/hooks/arl/useArlServices";
