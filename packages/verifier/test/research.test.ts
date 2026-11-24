@@ -9,6 +9,7 @@ import {
   citedSources,
   decideResearch,
   normalize,
+  openAiCompatibleJudge,
   pageText,
   parseResearchLog,
   quoteFound,
@@ -185,5 +186,53 @@ describe("research-sources: the vote", () => {
     );
     assert.equal(d.approve, false);
     assert.match(d.reason, /does not hash to the submitted deliverable/);
+  });
+});
+
+describe("research-sources: the model endpoint", () => {
+  const W = "a".repeat(64);
+  const task = { title: "t", description: "d" } as Parameters<ModelJudge["answers"]>[0];
+
+  async function withServer(
+    fn: (url: string, seen: { auth: string | undefined }[]) => Promise<void>,
+  ): Promise<void> {
+    const { createServer } = await import("node:http");
+    const seen: { auth: string | undefined }[] = [];
+    const server = createServer((req, res) => {
+      seen.push({ auth: req.headers.authorization });
+      req.resume();
+      req.on("end", () => {
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ choices: [{ message: { content: "YES" } }] }));
+      });
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const { port } = server.address() as { port: number };
+    try {
+      await fn(`http://127.0.0.1:${String(port)}/v1`, seen);
+    } finally {
+      server.close();
+    }
+  }
+
+  it("sends a Bearer token when an apiKey is set", async () => {
+    await withServer(async (url, seen) => {
+      const judge = openAiCompatibleJudge({
+        baseUrl: url,
+        model: "m",
+        weightsSha256: W,
+        apiKey: "k1",
+      });
+      assert.equal(await judge.answers(task, "b"), true);
+      assert.equal(seen[0]?.auth, "Bearer k1");
+    });
+  });
+
+  it("sends no Authorization header without an apiKey", async () => {
+    await withServer(async (url, seen) => {
+      const judge = openAiCompatibleJudge({ baseUrl: url, model: "m", weightsSha256: W });
+      assert.equal(await judge.answers(task, "b"), true);
+      assert.equal(seen[0]?.auth, undefined);
+    });
   });
 });

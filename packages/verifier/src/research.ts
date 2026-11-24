@@ -276,14 +276,18 @@ export function openAiCompatibleJudge(opts: {
   baseUrl: string;
   model: string;
   weightsSha256: string;
+  /** Sent as `Authorization: Bearer <apiKey>`, for an endpoint behind an access-token proxy. */
+  apiKey?: string;
 }): ModelJudge {
   if (!SHA256.test(opts.weightsSha256)) throw new ResearchError("weightsSha256 must be 64 hex");
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (opts.apiKey) headers.authorization = `Bearer ${opts.apiKey}`;
   return {
     weightsSha256: opts.weightsSha256,
     async answers(task, brief) {
       const res = await fetch(`${opts.baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         signal: AbortSignal.timeout(300_000),
         body: JSON.stringify({
           model: opts.model,

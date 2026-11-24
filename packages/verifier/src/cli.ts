@@ -19,6 +19,8 @@
 // Research-sources jobs need a pinned open model for their `answers-question` rule: set
 // ARL_RESEARCH_MODEL_URL (an OpenAI-compatible endpoint, e.g. http://127.0.0.1:11434/v1),
 // ARL_RESEARCH_MODEL (its model name) and ARL_RESEARCH_MODEL_SHA256 (the weights' SHA-256).
+// ARL_RESEARCH_MODEL_API_KEY is optional: it is sent as a Bearer token, for an endpoint behind an
+// access-token proxy.
 // Without them those jobs are still checked, and the vote rejects for want of that outcome.
 //
 //   ARL_PROVIDER_KEY=0x… ARL_MIN_BUDGET=<base units> node src/cli.ts provide <rpc> <evaluator> <fromBlock> [state.json]
@@ -437,7 +439,15 @@ function researchJudgeFromEnv(env: NodeJS.ProcessEnv) {
       "set all of ARL_RESEARCH_MODEL_URL, ARL_RESEARCH_MODEL and ARL_RESEARCH_MODEL_SHA256, or none",
     );
   }
-  return { judge: openAiCompatibleJudge({ baseUrl, model, weightsSha256 }) };
+  const apiKey = env.ARL_RESEARCH_MODEL_API_KEY?.trim();
+  return {
+    judge: openAiCompatibleJudge({
+      baseUrl,
+      model,
+      weightsSha256,
+      ...(apiKey ? { apiKey } : {}),
+    }),
+  };
 }
 
 /**
