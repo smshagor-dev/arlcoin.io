@@ -5,6 +5,8 @@ Mainnet. It lets an AI agent check verified tasks, read jobs and prepare the tra
 and fund a job. **It never holds a key and never sends a transaction**: every transaction it
 prepares is unsigned, for the user's own wallet to sign.
 
+[![ARL Protocol MCP server](https://mcprush.com/badge/arl-protocol-mcp/card.svg)](https://mcprush.com/to/arl-protocol-mcp?ref=badge)
+
 ## Add it to your MCP client
 
 ```json
