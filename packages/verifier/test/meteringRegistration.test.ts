@@ -178,7 +178,7 @@ describe("pinned historical ERC-8004 meter registration", () => {
       context,
       snapshot(),
     );
-    assert.equal(verified.signer, signer);
+    assert.equal(verified.signer.toLowerCase(), signer.toLowerCase());
     assert.equal(verified.receipt.job_id, "7");
 
     await assert.rejects(
