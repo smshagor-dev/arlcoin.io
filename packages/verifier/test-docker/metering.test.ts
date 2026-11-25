@@ -117,7 +117,9 @@ describe("metered Docker cgroup v2 integration", {
     const dir = await mkdtemp(join(tmpdir(), "arl-meter-cancel-"));
     const receiptPath = join(dir, "receipt.json");
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 1_000);
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, 1_000);
     const started = Date.now();
     try {
       const spec = job("sleep 30; echo complete > /out/result.txt");
