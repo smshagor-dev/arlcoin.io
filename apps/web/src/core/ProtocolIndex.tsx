@@ -16,45 +16,52 @@ interface Props {
  */
 export function ProtocolIndex({ onOpen }: Props) {
   return (
-    <footer className="border-t border-line px-4 pt-16 pb-12 sm:px-8">
+    <footer className="border-t border-line px-4 pt-8 pb-12 sm:px-8">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
-        <h2 className="text-[12px] text-fg-subtle">Index</h2>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-6">
-          {LAYERS.map((layer) => (
-            <section key={layer.id} className="flex flex-col gap-3">
-              <h3 className="text-[14px] font-extrabold">
-                <a
-                  href={withBase(pathFor(layer.id))}
-                  onClick={(e) => {
-                    if (!isPlainClick(e)) return;
-                    e.preventDefault();
-                    onOpen(layer.id);
-                  }}
-                  className="inline-flex min-h-11 items-center hover:text-accent"
-                >
-                  {layer.title}
-                </a>
-              </h3>
-              <ul className="flex flex-col">
-                {layer.cards.map((card) => (
-                  <li key={card.id}>
-                    <a
-                      href={withBase(pathFor(layer.id, card.id))}
-                      onClick={(e) => {
-                        if (!isPlainClick(e)) return;
-                        e.preventDefault();
-                        onOpen(layer.id, card.id);
-                      }}
-                      className="inline-flex min-h-11 items-center text-[13px] leading-snug text-fg-muted hover:text-fg"
-                    >
-                      {card.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <details className="group/index">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-[14px] text-fg-muted hover:text-fg [&::-webkit-details-marker]:hidden">
+            <h2 className="text-[14px] font-medium">All pages</h2>
+            <span aria-hidden="true" className="transition-transform group-open/index:rotate-90">
+              →
+            </span>
+          </summary>
+          <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-6">
+            {LAYERS.map((layer) => (
+              <section key={layer.id} className="flex flex-col gap-3">
+                <h3 className="text-[14px] font-extrabold">
+                  <a
+                    href={withBase(pathFor(layer.id))}
+                    onClick={(e) => {
+                      if (!isPlainClick(e)) return;
+                      e.preventDefault();
+                      onOpen(layer.id);
+                    }}
+                    className="inline-flex min-h-11 items-center hover:text-accent"
+                  >
+                    {layer.title}
+                  </a>
+                </h3>
+                <ul className="flex flex-col">
+                  {layer.cards.map((card) => (
+                    <li key={card.id}>
+                      <a
+                        href={withBase(pathFor(layer.id, card.id))}
+                        onClick={(e) => {
+                          if (!isPlainClick(e)) return;
+                          e.preventDefault();
+                          onOpen(layer.id, card.id);
+                        }}
+                        className="inline-flex min-h-11 items-center text-[13px] leading-snug text-fg-muted hover:text-fg"
+                      >
+                        {card.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </details>
         <div className="flex flex-col gap-2 border-t border-line pt-8 text-[12px] leading-[1.6] text-fg-subtle">
           <UseCaseLinks />
           <FooterLinks />

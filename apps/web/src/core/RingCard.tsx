@@ -150,11 +150,18 @@ export function RingCard({ entry, selected, onActivate }: Props) {
         <>
           <span className="flex flex-col gap-1.5">
             <span
-              className={`leading-tight font-extrabold tracking-[-0.01em] text-heading ${primary ? "text-[17px]" : "text-[15px]"}`}
+              className={`flex items-center justify-between gap-3 leading-tight font-extrabold tracking-[-0.01em] text-heading ${primary ? "text-[17px]" : "text-[15px]"}`}
             >
               {entry.title}
+              {entry.status === "LIVE" ? null : (
+                <span aria-hidden="true" className="card-arrow">
+                  →
+                </span>
+              )}
             </span>
-            <span className="text-[13px] leading-snug text-fg-muted">{entry.description}</span>
+            <span className="text-[14px] leading-snug text-fg-muted md:text-[13px]">
+              {entry.description}
+            </span>
           </span>
           {entry.metric ? (
             <MetricValue metric={entry.metric} size="card" emphasis={primary} />

@@ -3,7 +3,7 @@
   "name": "io.github.armanalabsai/arl-protocol",
   "title": "ARL Protocol",
   "description": "Escrow and verification for AI agent jobs on Base: check tasks, read verified records and scores.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "websiteUrl": "https://arlcoin.io/build",
   "repository": {
     "url": "https://github.com/armanalabsai/arlcoin.io",

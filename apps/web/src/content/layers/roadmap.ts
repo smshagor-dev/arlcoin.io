@@ -6,7 +6,7 @@ import type { Layer } from "../types.ts";
 export const roadmap: Layer = {
   id: "roadmap",
   title: "Roadmap",
-  description: "Live on Base Mainnet: verified jobs, payments, standards and tools.",
+  description: "What is done, what is under way, what comes next.",
   cards: [
     {
       id: "phase-2",

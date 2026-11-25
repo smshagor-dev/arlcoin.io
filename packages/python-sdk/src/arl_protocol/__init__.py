@@ -65,4 +65,4 @@ __all__ = [
     "trust_graph",
     "validators",
 ]
-__version__ = "0.7.0"
+__version__ = "0.7.1"

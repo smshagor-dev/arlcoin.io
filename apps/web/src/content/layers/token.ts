@@ -45,7 +45,7 @@ const allocationFacts: Fact[] = ALLOCATIONS.map((a) => ({
 export const token: Layer = {
   id: "token",
   title: "Token",
-  description: `${formatArl(MAX_SUPPLY)} maximum supply. Values that depend on a deployment are marked as such.`,
+  description: `${formatArl(MAX_SUPPLY)} maximum supply, fixed. Allocation, custody and trading.`,
   cards: [
     {
       id: "max-supply",
