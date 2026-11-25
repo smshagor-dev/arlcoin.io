@@ -47,7 +47,7 @@ import {
 } from "../src/index.ts";
 
 const PORT = 8557;
-const RPC = "http://127.0.0.1:" + PORT;
+const RPC = `http://127.0.0.1:${PORT}`;
 const KEY_DATA: Hex[] = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
   "0x59c6995e998f97a5a0044966f0945389dc9c86dae88c7a8412cacc3dc8a9b8a7",
@@ -208,7 +208,7 @@ before(async () => {
     logs: reservedReceipt.logs,
     eventName: "Registered",
   });
-  assert.equal(reservedEvents[0]?.args.agentId, 0n);
+  assert.equal(reservedEvents[0].args.agentId, 0n);
 
   const regHash = await wallet(provider).writeContract({
     address: identity,
@@ -395,9 +395,9 @@ describe("metered votes against the real local evaluator", () => {
       );
       let invalidReceiptExecutions = 0;
       const forbiddenRunner: ContainerRunner = {
-        async run() {
+        run() {
           invalidReceiptExecutions++;
-          throw new Error("untrusted receipt should never start a container");
+          return Promise.reject(new Error("untrusted receipt should never start a container"));
         },
       };
       await assert.rejects(
