@@ -61,7 +61,7 @@ source of the expected artifact digest still needs an authoritative policy.
 
 The validator never holds the provider's meter private key. Signed measurements prove integrity and attribution under the trusted-host assumption, not physical resource consumption against an administrator-controlled host.
 
-An **opt-in provisional resolver** in packages/verifier/src/metering/registration.ts reads the historical evaluator identity registry address, the job's provider and configured ERC-8004 provider agent ID, and the agent owner and tokenURI at a caller-selected registrationBlock. It requires a trusted external SHA-256 commitment to the *exact registration JSON bytes* and checks the registration's identity cross-reference and proposed extensions["arl-metering-receipt/1"].signer field. It rejects missing registration, wrong owner, mutable substituted metadata, malformed JSON, wrong chain and wrong job context. The verifyRegisteredMeteringReceipt wrapper resolves the signer first, then checks the EIP-712 receipt. It does not trust a self-declared signer or an HTTPS URL alone.
+An **opt-in provisional resolver** in packages/verifier/src/metering/registration.ts reads the historical evaluator identity registry address, the job's provider and configured ERC-8004 provider agent ID, and the agent owner and tokenURI at a caller-selected registrationBlock. It requires a trusted external SHA-256 commitment to the _exact registration JSON bytes_ and checks the registration's identity cross-reference and proposed extensions["arl-metering-receipt/1"].signer field. It rejects missing registration, wrong owner, mutable substituted metadata, malformed JSON, wrong chain and wrong job context. The verifyRegisteredMeteringReceipt wrapper resolves the signer first, then checks the EIP-712 receipt. It does not trust a self-declared signer or an HTTPS URL alone.
 
 ARLVerifiedEvaluator currently uses `providerAgentId = 0` as an unconfigured
 sentinel. The standard ERC-8004 registry starts minting token IDs at 0, so
@@ -94,7 +94,6 @@ The test runs a pinned BusyBox CPU/memory workload, reads retained counters, sig
 The approved execution identity (provider original execution versus validator re-execution), receipt transport, historical ERC-8004 pin and signer-rotation policy, replay policy and failure-evidence representation require upstream confirmation. The live watcher, Anvil vote demonstration and complete CI suite are not yet integrated or verified. The file-backed per-validator replay reservation is provisional and must not be represented as the agreed protocol policy.
 
 No Solidity, deployed address, billing, payment or tokenomics change is part of this work.
-
 
 ## One-command local Anvil demonstration
 

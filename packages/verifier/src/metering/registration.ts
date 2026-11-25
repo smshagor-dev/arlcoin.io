@@ -78,14 +78,14 @@ function validateSigner(value: unknown): Address {
 
 function validAgentId(value: unknown, expected: bigint): boolean {
   if (typeof value === "string") {
-    return /^(0|[1-9][0-9]*)$/.test(value) &&
-      value.length <= 78 &&
-      BigInt(value) === expected;
+    return /^(0|[1-9][0-9]*)$/.test(value) && value.length <= 78 && BigInt(value) === expected;
   }
-  return typeof value === "number" &&
+  return (
+    typeof value === "number" &&
     Number.isSafeInteger(value) &&
     value >= 0 &&
-    BigInt(value) === expected;
+    BigInt(value) === expected
+  );
 }
 
 /**
@@ -245,9 +245,11 @@ export async function resolveMeterSigner(
   const matches = raw.registrations.some((entry: unknown) => {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return false;
     const item = entry as Record<string, unknown>;
-    return typeof item.agentRegistry === "string" &&
+    return (
+      typeof item.agentRegistry === "string" &&
       item.agentRegistry.toLowerCase() === agentRegistry &&
-      validAgentId(item.agentId, agentId);
+      validAgentId(item.agentId, agentId)
+    );
   });
   if (!matches) return registrationError("registration file points to a different agent");
 

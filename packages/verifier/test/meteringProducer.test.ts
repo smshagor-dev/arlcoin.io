@@ -61,7 +61,10 @@ describe("metered Docker argument and provider receipt construction", () => {
       "arl-test",
       "/arl-metering/arl-test",
     );
-    assert.deepEqual(original.filter((x) => x !== "--rm"), args.slice(0, 1).concat(args.slice(4)));
+    assert.deepEqual(
+      original.filter((x) => x !== "--rm"),
+      args.slice(0, 1).concat(args.slice(4)),
+    );
     assert.deepEqual(args.slice(1, 4), ["--detach", "--cgroup-parent", "/arl-metering/arl-test"]);
     assert.equal(args.includes("--rm"), false);
     for (const option of ["--network", "none", "--read-only", "--cap-drop", "--pids-limit"]) {
@@ -70,10 +73,9 @@ describe("metered Docker argument and provider receipt construction", () => {
   });
 
   it("rejects a non-cgroup path at configuration time", () => {
-    assert.throws(
-      () => new MeteredDockerRunner({ cgroupRoot: "/tmp/not-a-cgroup" }),
-      { code: "METER_COUNTERS_UNAVAILABLE" },
-    );
+    assert.throws(() => new MeteredDockerRunner({ cgroupRoot: "/tmp/not-a-cgroup" }), {
+      code: "METER_COUNTERS_UNAVAILABLE",
+    });
   });
 
   it("signs actual provided measurements and binds to the deterministic result", async () => {
@@ -127,10 +129,9 @@ describe("metered Docker argument and provider receipt construction", () => {
   it("never signs an unmetered, failed, timed-out or result-mismatched run", async () => {
     const { metering: present, ...unmetered } = execution;
     assert.ok(present);
-    await assert.rejects(
-      () => produceMeteringReceipt(spec, unmetered, identity),
-      { code: "METER_COUNTERS_UNAVAILABLE" },
-    );
+    await assert.rejects(() => produceMeteringReceipt(spec, unmetered, identity), {
+      code: "METER_COUNTERS_UNAVAILABLE",
+    });
     await assert.rejects(
       () =>
         produceMeteringReceipt(

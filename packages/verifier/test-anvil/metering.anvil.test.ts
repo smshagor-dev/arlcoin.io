@@ -231,19 +231,21 @@ before(async () => {
   assert.equal(agentId, 1n, "meter provider requires a nonzero configured agent ID");
 
   const holder = client.address;
-  token = await deploy("ARLToken", [{
-    publicLaunch: holder,
-    communityStaking: holder,
-    ecosystemGrowth: holder,
-    strategicPartnerships: holder,
-    liquidity: holder,
-    founder: holder,
-    investors: holder,
-    treasury: holder,
-    team: holder,
-    earlyUsers: holder,
-    grantsBugBounty: holder,
-  }]);
+  token = await deploy("ARLToken", [
+    {
+      publicLaunch: holder,
+      communityStaking: holder,
+      ecosystemGrowth: holder,
+      strategicPartnerships: holder,
+      liquidity: holder,
+      founder: holder,
+      investors: holder,
+      treasury: holder,
+      team: holder,
+      earlyUsers: holder,
+      grantsBugBounty: holder,
+    },
+  ]);
   jobs = await deploy("ARLJobs", [token]);
   evaluator = await deploy("ARLVerifiedEvaluator", [
     jobs,
@@ -261,7 +263,9 @@ before(async () => {
   }
   await send(client, token, "ARLToken", "approve", [jobs, parseUnits("50", 18)]);
 });
-after(() => { anvil?.kill(); });
+after(() => {
+  anvil?.kill();
+});
 
 describe("metered votes against the real local evaluator", () => {
   it("rejects tampering, records two composite votes and settles a verified job", async () => {
@@ -317,14 +321,17 @@ describe("metered votes against the real local evaluator", () => {
       evaluatorAddress: evaluator,
       jobId,
       registrationBlock: await rpc.getBlockNumber({ cacheTime: 0 }),
-      pinnedRegistrationSha256: (
-        "0x" + createHash("sha256").update(registrationBytes).digest("hex")
-      ) as Hex,
+      pinnedRegistrationSha256: ("0x" +
+        createHash("sha256").update(registrationBytes).digest("hex")) as Hex,
       registrationBytes,
     };
     assert.equal(
-      await rpc.readContract({ address: identity, abi: registryAbi, functionName: "tokenURI",
-        args: [agentId] }),
+      await rpc.readContract({
+        address: identity,
+        abi: registryAbi,
+        functionName: "tokenURI",
+        args: [agentId],
+      }),
       uri,
     );
 
@@ -366,9 +373,13 @@ describe("metered votes against the real local evaluator", () => {
         receipt: { ...signed.receipt, cpu_time_ns: signed.receipt.cpu_time_ns + 1 },
       };
       await assert.rejects(
-        () => voteMeteredJob({
-          ...common, wallet: wallet(v1), receipt: changed, replay: firstStore,
-        }),
+        () =>
+          voteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: changed,
+            replay: firstStore,
+          }),
         { code: "SIGNER_MISMATCH" },
       );
       const impossibleMemory = {
@@ -376,9 +387,13 @@ describe("metered votes against the real local evaluator", () => {
         receipt: { ...signed.receipt, memory_peak_bytes: 200 * 1024 * 1024 },
       };
       await assert.rejects(
-        () => voteMeteredJob({
-          ...common, wallet: wallet(v1), receipt: impossibleMemory, replay: firstStore,
-        }),
+        () =>
+          voteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: impossibleMemory,
+            replay: firstStore,
+          }),
         { code: "INVALID_MEASUREMENT" },
       );
       const unauthorized = await signMeteringReceipt(
@@ -433,15 +448,22 @@ describe("metered votes against the real local evaluator", () => {
           }),
         { code: "RECEIPT_EXPIRED" },
       );
-      assert.equal((await readJob(rpc, evaluator, jobId, v1.address)).memberState, MemberState.Accepted);
+      assert.equal(
+        (await readJob(rpc, evaluator, jobId, v1.address)).memberState,
+        MemberState.Accepted,
+      );
       await assert.rejects(
-        () => voteMeteredJob({
-          ...common, wallet: wallet(v1), receipt: delivered, replay: firstStore,
-          registration: {
-            ...registration,
-            pinnedRegistrationSha256: ("0x" + "0".repeat(64)) as Hex,
-          },
-        }),
+        () =>
+          voteMeteredJob({
+            ...common,
+            wallet: wallet(v1),
+            receipt: delivered,
+            replay: firstStore,
+            registration: {
+              ...registration,
+              pinnedRegistrationSha256: ("0x" + "0".repeat(64)) as Hex,
+            },
+          }),
         { code: "REGISTRATION_UNAVAILABLE" },
       );
       // An otherwise valid registration snapshot captured long AFTER this
@@ -516,7 +538,10 @@ describe("metered votes against the real local evaluator", () => {
       });
       assert.equal(audited.evidenceHash, first.evidenceHash);
       const logs = await rpc.getLogs({
-        address: evaluator, event: votedEvent, args: { jobId }, fromBlock: 0n,
+        address: evaluator,
+        event: votedEvent,
+        args: { jobId },
+        fromBlock: 0n,
       });
       assert.equal(logs.length, 2);
       for (const entry of logs) {
@@ -529,7 +554,10 @@ describe("metered votes against the real local evaluator", () => {
       await testClient.mine({ blocks: 1 });
       await send(client, evaluator, "ARLVerifiedEvaluator", "finalize", [jobId]);
       const paid = await rpc.readContract({
-        address: token, abi: erc20Abi, functionName: "balanceOf", args: [provider.address],
+        address: token,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [provider.address],
       });
       assert.equal(paid, parseUnits("20", 18));
     } finally {

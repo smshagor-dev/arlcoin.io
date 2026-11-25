@@ -67,11 +67,7 @@ export async function readPinnedMeteringArtifact(
   let bytes: Buffer;
   try {
     const before = await file.stat();
-    if (
-      !before.isFile() ||
-      before.size > MAX_SIGNED_METERING_ARTIFACT_BYTES ||
-      before.size < 1
-    ) {
+    if (!before.isFile() || before.size > MAX_SIGNED_METERING_ARTIFACT_BYTES || before.size < 1) {
       return artifactError("signed receipt is not a bounded regular file");
     }
     const parts: Buffer[] = [];
@@ -118,7 +114,6 @@ export async function readPinnedMeteringArtifact(
   }
   return { signed: parseSignedMeteringReceiptJson(json), sha256 };
 }
-
 
 /**
  * Publish a complete signed receipt as one durable, no-overwrite filesystem

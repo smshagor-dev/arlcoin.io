@@ -62,10 +62,7 @@ async function preflightMeteredJob(input: PreflightInput): Promise<{
   deliverable: Hex;
   context: MeteringVerificationContext;
 }> {
-  if (
-    !Number.isSafeInteger(input.maxReceiptAgeSeconds) ||
-    input.maxReceiptAgeSeconds <= 0
-  ) {
+  if (!Number.isSafeInteger(input.maxReceiptAgeSeconds) || input.maxReceiptAgeSeconds <= 0) {
     throw new MeteringReceiptError(
       "INVALID_TIMESTAMP",
       "a positive explicit receipt freshness window is mandatory",
@@ -90,10 +87,7 @@ async function preflightMeteredJob(input: PreflightInput): Promise<{
     );
   }
   const { timestamp: chainTimestamp } = await input.client.getBlock();
-  if (
-    chainTimestamp >= job.expiredAt ||
-    (job.voteEnds !== 0n && chainTimestamp >= job.voteEnds)
-  ) {
+  if (chainTimestamp >= job.expiredAt || (job.voteEnds !== 0n && chainTimestamp >= job.voteEnds)) {
     throw new MeteringReceiptError(
       "JOB_NOT_VOTABLE",
       "job deadline or validator vote window has passed",

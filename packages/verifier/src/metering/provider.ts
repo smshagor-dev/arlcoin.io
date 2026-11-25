@@ -5,15 +5,9 @@
 import type { Fetcher } from "../inputs.ts";
 import { execute, type Execution } from "../verify.ts";
 import type { ReexecSpec } from "../spec.ts";
-import {
-  publishSignedMeteringArtifact,
-  type PublishedMeteringArtifact,
-} from "./artifact.ts";
+import { publishSignedMeteringArtifact, type PublishedMeteringArtifact } from "./artifact.ts";
 import { MeteredDockerRunner } from "./runner.ts";
-import {
-  produceMeteringReceipt,
-  type MeteringProducerIdentity,
-} from "./produce.ts";
+import { produceMeteringReceipt, type MeteringProducerIdentity } from "./produce.ts";
 import type { SignedMeteringReceipt } from "./receipt.ts";
 
 export interface MeteredProviderOptions {

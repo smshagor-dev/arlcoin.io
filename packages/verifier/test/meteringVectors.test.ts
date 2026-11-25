@@ -65,9 +65,7 @@ const types = {
   ],
 } as const;
 
-const CURVE_ORDER = BigInt(
-  "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
-);
+const CURVE_ORDER = BigInt("0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 
 function typedData(r: Receipt) {
   return {
