@@ -146,7 +146,7 @@ async function send(
   assert.equal((await rpc.waitForTransactionReceipt({ hash })).status, "success");
 }
 
-let anvil: ChildProcess;
+let anvil: ChildProcess | undefined;
 let token: Address;
 let jobs: Address;
 let evaluator: Address;
