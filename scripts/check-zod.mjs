@@ -9,10 +9,60 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
+import { URL } from "node:url";
 
 const FIXED = [4, 6, 6];
 const IMPORT = /(?:from\s*|require\(\s*|import\(\s*)["'](zod(?:\/[^"']*)?)["']/g;
 const problems = [];
+
+// This advisory has no patched 3.x release. Until upstream wallet SDKs migrate,
+// enforce an exact inventory of their legacy copies; any new, upgraded or
+// relocated vulnerable copy invalidates the short-lived audit exception.
+const allowedLegacyWalletZod = new Map([
+  ["node_modules/@coinbase/cdp-sdk/node_modules/zod", "3.25.76"],
+  ["node_modules/@reown/appkit-controllers/node_modules/zod", "3.25.76"],
+  ["node_modules/@reown/appkit-utils/node_modules/zod", "3.25.76"],
+  ["node_modules/@reown/appkit-wallet/node_modules/zod", "3.22.4"],
+  ["node_modules/@reown/appkit/node_modules/zod", "3.25.76"],
+  ["node_modules/@walletconnect/utils/node_modules/zod", "3.25.76"],
+]);
+const dappLock = JSON.parse(
+  readFileSync(new URL("../apps/dapp/package-lock.json", import.meta.url), "utf8"),
+);
+const observedLegacy = new Set();
+for (const [location, pkg] of Object.entries(dappLock.packages ?? {})) {
+  if (!(location === "node_modules/zod" || location.endsWith("/node_modules/zod"))) continue;
+  const version = pkg.version;
+  if (typeof version !== "string") {
+    problems.push(location + ": missing Zod version in DApp lockfile");
+    continue;
+  }
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  if (!match) {
+    problems.push(location + ": unexpected Zod version syntax " + version);
+    continue;
+  }
+  const vulnerable =
+    Number(match[1]) < 4 ||
+    (Number(match[1]) === 4 &&
+      (Number(match[2]) < 6 || (Number(match[2]) === 6 && Number(match[3]) < 6)));
+  if (!vulnerable) continue;
+  observedLegacy.add(location);
+  if (allowedLegacyWalletZod.get(location) !== version) {
+    problems.push(location + ": unreviewed vulnerable Zod " + version);
+  }
+}
+for (const location of allowedLegacyWalletZod.keys()) {
+  if (!observedLegacy.has(location)) {
+    problems.push(
+      location +
+        ": previously reviewed legacy Zod moved or disappeared; review/remove audit exception",
+    );
+  }
+}
+if (dappLock.packages?.["node_modules/zod"]?.version !== "4.6.7") {
+  problems.push("DApp root Zod must remain pinned to audited 4.6.7 until the exception is removed");
+}
 
 const atLeast = (version, min) => {
   const v = version.split(/[.-]/).map(Number);
