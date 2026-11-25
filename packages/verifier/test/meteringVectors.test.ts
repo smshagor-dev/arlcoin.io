@@ -91,10 +91,15 @@ function typedData(r: Receipt) {
 }
 
 function change(r: Receipt, patch: Record<string, unknown>): Receipt {
-  const updated = { ...r } as Record<string, unknown>;
+  let updated = { ...r } as Record<string, unknown>;
   for (const [key, value] of Object.entries(patch)) {
-    if (value === "__DELETE__") delete updated[key];
-    else updated[key] = value;
+    if (value === "__DELETE__") {
+      updated = Object.fromEntries(
+        Object.entries(updated).filter(([existing]) => existing !== key),
+      );
+    } else {
+      updated[key] = value;
+    }
   }
   return updated as Receipt;
 }
