@@ -9,6 +9,7 @@ on:
       - feat/arl-metering-upstream-review
     paths:
       - ".github/workflows/metering-acceptance.yml"
+      - ".github/workflows/metering-real-docker.yml"
       - "packages/verifier/**"
       - "spec/arl-metering-receipt/**"
       - "scripts/demo-resource-metering.sh"

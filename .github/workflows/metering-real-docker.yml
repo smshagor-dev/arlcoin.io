@@ -6,6 +6,7 @@ on:
       - feat/arl-metering-vote-demo
       - feat/arl-metering-upstream-review
     paths:
+      - ".github/workflows/metering-acceptance.yml"
       - ".github/workflows/metering-real-docker.yml"
       - "packages/verifier/**"
       - "scripts/check-zod.mjs"
