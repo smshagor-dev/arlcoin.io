@@ -43,7 +43,7 @@ export class FileMeteringReplayStore implements MeteringReplayStore {
   }
 
   async consume(verified: VerifiedMeteringReceipt): Promise<void> {
-    if (!verified.receipt || typeof verified.receiptHash !== "string") {
+    if (!Object.hasOwn(verified, "receipt") || typeof verified.receiptHash !== "string") {
       throw replayError("REPLAY_STORAGE_UNAVAILABLE", "verified receipt is required");
     }
     const receipt = verified.receipt;
