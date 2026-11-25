@@ -3,9 +3,11 @@
     {
       "id": "GHSA-mrhx-c7xc-m3w5",
       "package": "zod",
-      "scope": ["dapp"],
-      "reason": "Memory exhaustion in zod 4's $ZodArray (fixed in zod 4.6.6). @x402/core and @x402/evm 2.29.0 use zod 4.6.7, and so does everything that loads zod/v4. The app's wallet libraries (WalletConnect, Reown AppKit, Coinbase CDP SDK) still pin zod 3.22-3.25 and load only the zod 3 root, which does not contain the vulnerable code; ARL code does not import zod. scripts/check-zod.mjs fails CI if any of this changes. Remove when the wallet libraries move to zod >= 4.6.6.",
-      "expires": "2026-11-23"
+      "scope": [
+        "dapp"
+      ],
+      "reason": "Time-limited third-party wallet SDK risk acceptance (CVE-2023-54404, high): the DApp lockfile contains six nested zod 3.x copies pinned by @coinbase/cdp-sdk, @reown/appkit* and @walletconnect/utils, while root zod is 4.6.7. Upstream advisory flags all <4.6.6, with no patched zod 3 release. Avoid a forced zod 4 override that may break wallet schema behavior. scripts/check-zod.mjs MUST enforce the exact six legacy paths and versions, inspect imports, and keep ARL/x402 at patched zod >=4.6.6. Not a security fix; re-evaluate and remove promptly once wallet SDKs upgrade.",
+      "expires": "2026-12-09"
     }
   ]
 }
