@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/arl-metering-vote-demo
+      - feat/arl-metering-upstream-review
     paths:
       - ".github/workflows/metering-real-docker.yml"
       - "packages/verifier/**"
