@@ -36,6 +36,10 @@ export function clampDescription(text: string, max = MAX_DESCRIPTION): string {
  * about out of context. The caption itself stays short: it sits beside the Core.
  */
 const LAYER_SEARCH: Record<string, string> = {
+  token:
+    "The ARL token on Base Mainnet: fixed maximum supply, allocation, vesting, custody and where it trades.",
+  technology:
+    "ARL Protocol technology: AI agents are paid after their work is checked, live on Base Mainnet.",
   security:
     "ARL Protocol security: how the contracts limit what anyone can do, and how they are checked.",
   roadmap:

@@ -40,8 +40,8 @@
 
 @layer base {
   :root {
-    /* One beat for every neon frame and dot, so they all light up together (NeonSync). */
-    --neon-beat: 2s;
+    /* One slow beat for every lit frame and dot, so they breathe together (NeonSync). */
+    --neon-beat: 6s;
     color-scheme: dark;
   }
 
@@ -130,25 +130,25 @@
     border-color: var(--color-accent-edge);
   }
 
-  /* One vivid tint per layer: a coloured top edge and a wash of the same colour. */
+  /* One quiet tint per layer: a coloured left edge on a plain surface. */
   .material-card[data-tint] {
     --tint: var(--color-accent);
     position: relative;
-    border-top-color: color-mix(in srgb, var(--tint) 85%, transparent);
-    background:
-      radial-gradient(
-        120% 80% at 0% 0%,
-        color-mix(in srgb, var(--tint) 26%, transparent),
-        transparent 60%
-      ),
-      rgb(12 22 50 / 0.5);
-    box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--tint) 55%, transparent),
-      0 10px 32px -18px var(--tint);
+    border-color: color-mix(in srgb, var(--tint) 22%, transparent);
+    background: rgb(15 26 54 / 0.62);
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 70%, transparent);
   }
   .material-card[data-tint]:hover,
   .material-card[data-tint][data-selected="true"] {
-    border-color: color-mix(in srgb, var(--tint) 70%, transparent);
+    border-color: color-mix(in srgb, var(--tint) 55%, transparent);
+    background: rgb(20 33 66 / 0.7);
+  }
+  .card-arrow {
+    color: var(--tint);
+    transition: transform 200ms var(--ease-out-quint);
+  }
+  .material-card:hover .card-arrow {
+    transform: translateX(3px);
   }
   .material-card[data-tint="token"] {
     --tint: #f2c56b;
@@ -165,11 +165,11 @@
   .material-card[data-tint="ecosystem"] {
     --tint: #ff9a76;
   }
-  /* Finished things glow: a LIVE card or a done roadmap phase breathes in its own layer
-     colour, like neon; a phase under way blinks in neon blue. */
+  /* Finished things are lit: a LIVE card or a done roadmap phase breathes softly in its own
+     layer colour; a phase under way breathes in blue. Nothing goes dark in between. */
   .material-card[data-tint][data-status="LIVE"],
   .material-card[data-tint][data-progress="done"] {
-    border-color: color-mix(in srgb, var(--tint) 75%, transparent);
+    border-color: color-mix(in srgb, var(--tint) 45%, transparent);
     animation: tint-neon var(--neon-beat) ease-in-out infinite;
   }
   .material-card[data-tint][data-progress="active"] {
@@ -735,7 +735,7 @@
   height: 8px;
   border-radius: 50%;
   background: #7ee0a6;
-  animation: live-ping 2s infinite;
+  animation: live-ping 6s ease-out infinite;
 }
 @keyframes live-ping {
   0% {
@@ -1003,46 +1003,42 @@
   color: #7fd0ff;
   text-shadow: 0 0 6px rgb(46 168 255 / 0.8);
 }
+/* A soft breath: small changes of light on a slow beat, never a blink. */
 @keyframes road-frame {
   0%,
   100% {
-    border-color: #2ea8ff;
-    box-shadow:
-      0 0 6px rgb(46 168 255 / 0.9),
-      0 0 18px rgb(46 168 255 / 0.6),
-      inset 0 0 14px rgb(46 168 255 / 0.18);
+    border-color: rgb(46 168 255 / 0.7);
+    box-shadow: 0 0 14px rgb(46 168 255 / 0.22);
   }
-  55% {
-    border-color: rgb(46 168 255 / 0.3);
-    box-shadow: 0 0 0 rgb(46 168 255 / 0);
+  50% {
+    border-color: rgb(46 168 255 / 0.45);
+    box-shadow: 0 0 14px rgb(46 168 255 / 0.1);
   }
 }
-/* The same neon breath as a phase under way, in dollar green, slower: done and live things. */
 @keyframes done-frame {
   0%,
   100% {
-    border-color: #85bb65;
-    box-shadow:
-      0 0 6px rgb(133 187 101 / 0.9),
-      0 0 18px rgb(133 187 101 / 0.55),
-      inset 0 0 14px rgb(133 187 101 / 0.16);
+    border-color: rgb(133 187 101 / 0.7);
+    box-shadow: 0 0 14px rgb(133 187 101 / 0.2);
   }
-  55% {
-    border-color: rgb(133 187 101 / 0.35);
-    box-shadow: 0 0 0 rgb(133 187 101 / 0);
+  50% {
+    border-color: rgb(133 187 101 / 0.45);
+    box-shadow: 0 0 14px rgb(133 187 101 / 0.08);
   }
 }
 @keyframes tint-neon {
   0%,
   100% {
+    border-color: color-mix(in srgb, var(--tint) 50%, transparent);
     box-shadow:
-      0 0 6px color-mix(in srgb, var(--tint) 90%, transparent),
-      0 0 18px color-mix(in srgb, var(--tint) 55%, transparent),
-      inset 0 0 14px color-mix(in srgb, var(--tint) 16%, transparent);
+      inset 3px 0 0 color-mix(in srgb, var(--tint) 70%, transparent),
+      0 0 14px color-mix(in srgb, var(--tint) 16%, transparent);
   }
-  55% {
-    border-color: color-mix(in srgb, var(--tint) 30%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tint) 40%, transparent);
+  50% {
+    border-color: color-mix(in srgb, var(--tint) 32%, transparent);
+    box-shadow:
+      inset 3px 0 0 color-mix(in srgb, var(--tint) 70%, transparent),
+      0 0 14px color-mix(in srgb, var(--tint) 6%, transparent);
   }
 }
 @keyframes road-blink {
@@ -1050,8 +1046,8 @@
   100% {
     opacity: 1;
   }
-  55% {
-    opacity: 0.15;
+  50% {
+    opacity: 0.6;
   }
 }
 @media (prefers-reduced-motion: reduce) {
