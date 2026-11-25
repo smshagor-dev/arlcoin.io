@@ -272,7 +272,7 @@ export class MeteredDockerRunner implements ContainerRunner {
       const finished_at = Math.floor(Date.now() / 1000);
       const elapsed_ns = elapsedSafe(monotonicStart);
       state.stopped = true;
-      if (diskTimer) clearInterval(diskTimer);
+      clearInterval(diskTimer);
       if (state.polling) await state.polling;
 
       if (state.cancelled || signal?.aborted) {
