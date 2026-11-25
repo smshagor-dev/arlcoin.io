@@ -47,8 +47,8 @@ function chain(
 ) {
   const calls: { functionName: string; blockNumber?: bigint }[] = [];
   const client = {
-    getChainId: async () => 31337,
-    readContract: async ({
+    getChainId: () => Promise.resolve(31337),
+    readContract: ({
       functionName,
       blockNumber,
     }: {
@@ -56,14 +56,14 @@ function chain(
       blockNumber?: bigint;
     }) => {
       calls.push({ functionName, ...(blockNumber === undefined ? {} : { blockNumber }) });
-      if (functionName === "identity") return registry;
-      if (functionName === "jobs") return jobs;
-      if (functionName === "getConfig") return { providerAgentId: options.agentId ?? 17n };
+      if (functionName === "identity") return Promise.resolve(registry);
+      if (functionName === "jobs") return Promise.resolve(jobs);
+      if (functionName === "getConfig") return Promise.resolve({ providerAgentId: options.agentId ?? 17n });
       if (functionName === "getJob") {
-        return { id: 7n, provider: options.provider ?? provider, evaluator };
+        return Promise.resolve({ id: 7n, provider: options.provider ?? provider, evaluator });
       }
-      if (functionName === "ownerOf") return options.owner ?? provider;
-      if (functionName === "tokenURI") return options.uri ?? "https://example.org/agent.json";
+      if (functionName === "ownerOf") return Promise.resolve(options.owner ?? provider);
+      if (functionName === "tokenURI") return Promise.resolve(options.uri ?? "https://example.org/agent.json");
       throw new Error("unexpected read " + functionName);
     },
   } as unknown as PublicClient;
@@ -92,11 +92,7 @@ describe("pinned historical ERC-8004 meter registration", () => {
 
   it("refuses a historical URI that differs from the independently pinned URI", async () => {
     await assert.rejects(
-      () =>
-        resolveMeterSigner(
-          chain({ uri: "https://other.example.org/agent.json" }).client,
-          snapshot(),
-        ),
+      () => resolveMeterSigner(chain({ uri: "https://other.example.org/agent.json" }).client, snapshot()),
       { code: "REGISTRATION_UNAVAILABLE" },
     );
   });

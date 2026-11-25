@@ -62,8 +62,7 @@ describe("durable provisional job-level replay reservation", () => {
       assert.equal(failures.length, 11);
       assert.ok(
         failures.every(
-          (r) => r.status === "rejected" &&
-            r.reason instanceof Error &&
+          (r) => r.reason instanceof Error &&
             "code" in r.reason &&
             r.reason.code === "REPLAY_DETECTED",
         ),

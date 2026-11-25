@@ -161,24 +161,51 @@ export class MeteredDockerRunner implements ContainerRunner {
     const dockerParent = parent.slice("/sys/fs/cgroup".length);
     await mkdir(parent, { mode: 0o700 });
 
-    let containerStarted = false;
-    let timedOut = false;
-    let tooLarge = false;
-    let cancelled = false;
-    let pollFailure = false;
+    const state = {
+      containerStarted: false,
+      timedOut: false,
+      tooLarge: false,
+      cancelled: false,
+      pollFailure: false,
+      polling: undefined as Promise<void> | undefined,
+      stopped: false,
+    };
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let diskTimer: ReturnType<typeof setInterval> | undefined;
-    let polling: Promise<void> | undefined;
-    let stopped = false;
 
     const stop = () => {
       void docker(this.#docker, ["kill", name], 15_000).catch(() => undefined);
     };
     const onAbort = () => {
-      cancelled = true;
+      state.cancelled = true;
       stop();
     };
     signal?.addEventListener("abort", onAbort, { once: true });
+
+    const cleanupContainer = async (): Promise<void> => {
+      // Always force-remove the named container, including on timeout, cancellation
+      // or when a Docker CLI invocation failed partway through container creation.
+      let cleanupError: Error | undefined;
+      try {
+        if (state.containerStarted || state.cancelled || state.timedOut) {
+          await docker(this.#docker, ["rm", "-f", name], 30_000);
+        } else {
+          // The detached run may have created a container before its CLI failed.
+          await docker(this.#docker, ["rm", "-f", name], 30_000).catch(() => undefined);
+        }
+      } catch (error) {
+        cleanupError = error instanceof Error ? error : new Error("cleanup failed");
+      }
+      try {
+        await rmdir(parent);
+      } catch {
+        cleanupError = new MeteringReceiptError(
+          "METER_RUNTIME_FAILURE",
+          "cgroup parent cleanup failed; manual inspection required",
+        );
+      }
+      if (cleanupError !== undefined) throw cleanupError;
+    };
 
     try {
       // For nested Docker container cgroups, delegate cpu and memory to this
@@ -190,7 +217,7 @@ export class MeteredDockerRunner implements ContainerRunner {
       const started_at = Math.floor(Date.now() / 1000);
       const monotonicStart = process.hrtime.bigint();
       timeout = setTimeout(() => {
-        timedOut = true;
+        state.timedOut = true;
         stop();
       }, spec.limits.seconds * 1000);
 
@@ -199,7 +226,7 @@ export class MeteredDockerRunner implements ContainerRunner {
       if (!/^[0-9a-f]{64}$/.test(id)) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "invalid Docker container ID");
       }
-      containerStarted = true;
+      state.containerStarted = true;
 
       // Fail closed if Docker ignored the requested accounting parent.
       const actualParent = await docker(
@@ -214,25 +241,25 @@ export class MeteredDockerRunner implements ContainerRunner {
           "wrong container cgroup parent",
         );
       }
-      if (signal?.aborted || timedOut) stop();
+      if (signal?.aborted || state.timedOut) stop();
 
       diskTimer = setInterval(() => {
-        if (polling || stopped) return;
-        polling = (async () => {
+        if (state.polling || state.stopped) return;
+        state.polling = (async () => {
           try {
             const used =
               (await diskUsage(outDir, this.#maxDiskBytes)) +
               (await diskUsage(workDir, this.#maxDiskBytes));
             if (used > this.#maxDiskBytes) {
-              tooLarge = true;
+              state.tooLarge = true;
               stop();
             }
           } catch {
-            pollFailure = true;
+            state.pollFailure = true;
             stop();
           }
         })().finally(() => {
-          polling = undefined;
+          state.polling = undefined;
         });
       }, DISK_POLL_MS);
 
@@ -244,14 +271,14 @@ export class MeteredDockerRunner implements ContainerRunner {
       );
       const finished_at = Math.floor(Date.now() / 1000);
       const elapsed_ns = elapsedSafe(monotonicStart);
-      stopped = true;
+      state.stopped = true;
       if (diskTimer) clearInterval(diskTimer);
-      if (polling) await polling;
+      if (state.polling) await state.polling;
 
-      if (cancelled || signal?.aborted) {
-        throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "metered job cancelled");
+      if (state.cancelled || signal?.aborted) {
+        throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "metered job state.cancelled");
       }
-      if (tooLarge || pollFailure) {
+      if (state.tooLarge || state.pollFailure) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "job disk accounting failed");
       }
       // A short-lived container can exit before the first one-second disk poll.
@@ -265,7 +292,7 @@ export class MeteredDockerRunner implements ContainerRunner {
           "job exceeded its final work/output disk budget",
         );
       }
-      if (timedOut) return { exitCode: null, timedOut: true };
+      if (state.timedOut) return { exitCode: null, state.timedOut: true };
       if (!EXIT_CODE.test(status) || Number(status) > 255) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "invalid Docker exit status");
       }
@@ -280,11 +307,11 @@ export class MeteredDockerRunner implements ContainerRunner {
           "container did not produce observable hierarchical memory accounting",
         );
       }
-      if (exitCode !== 0) return { exitCode, timedOut: false };
+      if (exitCode !== 0) return { exitCode, state.timedOut: false };
 
       return {
         exitCode,
-        timedOut: false,
+        state.timedOut: false,
         metering: {
           started_at,
           finished_at,
@@ -294,33 +321,12 @@ export class MeteredDockerRunner implements ContainerRunner {
         },
       };
     } finally {
-      stopped = true;
+      state.stopped = true;
       if (timeout) clearTimeout(timeout);
       if (diskTimer) clearInterval(diskTimer);
       signal?.removeEventListener("abort", onAbort);
 
-      // Always force-remove the named container, including on timeout, cancellation
-      // or when a Docker CLI invocation failed partway through container creation.
-      let cleanupError: unknown;
-      try {
-        if (containerStarted || cancelled || timedOut) {
-          await docker(this.#docker, ["rm", "-f", name], 30_000);
-        } else {
-          // The detached run may have created a container before its CLI failed.
-          await docker(this.#docker, ["rm", "-f", name], 30_000).catch(() => undefined);
-        }
-      } catch (error) {
-        cleanupError = error;
-      }
-      try {
-        await rmdir(parent);
-      } catch {
-        cleanupError = new MeteringReceiptError(
-          "METER_RUNTIME_FAILURE",
-          "cgroup parent cleanup failed; manual inspection required",
-        );
-      }
-      if (cleanupError !== undefined) throw cleanupError;
+      await cleanupContainer();
     }
   }
 }

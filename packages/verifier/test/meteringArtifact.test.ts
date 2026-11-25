@@ -104,7 +104,7 @@ describe("bounded pinned local receipt artifact transport", {
       assert.equal(attempts.filter((x) => x.status === "rejected").length, 1);
       assert.deepEqual(await readdir(directory), ["receipt.json"]);
       const succeeded = attempts.find((x) => x.status === "fulfilled");
-      assert.ok(succeeded && succeeded.status === "fulfilled");
+      assert.ok(succeeded);
       const read = await readPinnedMeteringArtifact(destination, succeeded.value.sha256);
       assert.equal(read.signed.receipt.job_id, envelope.receipt.job_id);
     } finally {

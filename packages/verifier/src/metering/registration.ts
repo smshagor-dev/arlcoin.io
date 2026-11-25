@@ -241,9 +241,7 @@ export async function resolveMeterSigner(
   if (!Array.isArray(raw.registrations)) {
     return registrationError("registration file has no identity cross-reference");
   }
-  const agentRegistry = (
-    "eip155:" + snapshot.chainId + ":" + identityRegistry.toLowerCase()
-  );
+  const agentRegistry = `eip155:${snapshot.chainId}:${identityRegistry.toLowerCase()}`;
   const matches = raw.registrations.some((entry: unknown) => {
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return false;
     const item = entry as Record<string, unknown>;
