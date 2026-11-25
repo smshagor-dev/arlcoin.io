@@ -16,5 +16,7 @@ export * from "./metering/runner.ts";
 export * from "./metering/produce.ts";
 export * from "./metering/replay.ts";
 export * from "./metering/registration.ts";
+export * from "./metering/evidence.ts";
+export * from "./metering/vote.ts";
 export * from "./metering/artifact.ts";
 export * from "./metering/provider.ts";
