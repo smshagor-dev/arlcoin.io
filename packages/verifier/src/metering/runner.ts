@@ -276,7 +276,7 @@ export class MeteredDockerRunner implements ContainerRunner {
       if (state.polling) await state.polling;
 
       if (state.cancelled || signal?.aborted) {
-        throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "metered job state.cancelled");
+        throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "metered job cancelled");
       }
       if (state.tooLarge || state.pollFailure) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "job disk accounting failed");
@@ -292,7 +292,7 @@ export class MeteredDockerRunner implements ContainerRunner {
           "job exceeded its final work/output disk budget",
         );
       }
-      if (state.timedOut) return { exitCode: null, state.timedOut: true };
+      if (state.timedOut) return { exitCode: null, timedOut: true };
       if (!EXIT_CODE.test(status) || Number(status) > 255) {
         throw new MeteringReceiptError("METER_RUNTIME_FAILURE", "invalid Docker exit status");
       }
@@ -307,11 +307,11 @@ export class MeteredDockerRunner implements ContainerRunner {
           "container did not produce observable hierarchical memory accounting",
         );
       }
-      if (exitCode !== 0) return { exitCode, state.timedOut: false };
+      if (exitCode !== 0) return { exitCode, timedOut: false };
 
       return {
         exitCode,
-        state.timedOut: false,
+        timedOut: false,
         metering: {
           started_at,
           finished_at,
