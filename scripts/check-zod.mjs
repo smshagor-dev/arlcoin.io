@@ -42,10 +42,10 @@ for (const [location, pkg] of Object.entries(dappLock.packages ?? {})) {
     problems.push(location + ": unexpected Zod version syntax " + version);
     continue;
   }
-  const vulnerable = Number(match[1]) < 4 ||
-    (Number(match[1]) === 4 && (
-      Number(match[2]) < 6 || (Number(match[2]) === 6 && Number(match[3]) < 6)
-    ));
+  const vulnerable =
+    Number(match[1]) < 4 ||
+    (Number(match[1]) === 4 &&
+      (Number(match[2]) < 6 || (Number(match[2]) === 6 && Number(match[3]) < 6)));
   if (!vulnerable) continue;
   observedLegacy.add(location);
   if (allowedLegacyWalletZod.get(location) !== version) {
@@ -54,13 +54,15 @@ for (const [location, pkg] of Object.entries(dappLock.packages ?? {})) {
 }
 for (const location of allowedLegacyWalletZod.keys()) {
   if (!observedLegacy.has(location)) {
-    problems.push(location + ": previously reviewed legacy Zod moved or disappeared; review/remove audit exception");
+    problems.push(
+      location +
+        ": previously reviewed legacy Zod moved or disappeared; review/remove audit exception",
+    );
   }
 }
 if (dappLock.packages?.["node_modules/zod"]?.version !== "4.6.7") {
   problems.push("DApp root Zod must remain pinned to audited 4.6.7 until the exception is removed");
 }
-
 
 const atLeast = (version, min) => {
   const v = version.split(/[.-]/).map(Number);
