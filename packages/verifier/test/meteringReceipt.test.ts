@@ -193,7 +193,7 @@ describe("metering receipt schema and EIP-712 verifier", () => {
 
   it("rejects tampering and unauthorized meter keys", async () => {
     await assert.rejects(
-      () => verifyMeteringReceipt({ ...envelope, receipt: changed({ cpu_time_ns: 1_120_000_001 }) as MeteringReceipt }, context),
+      () => verifyMeteringReceipt({ ...envelope, receipt: changed({ cpu_time_ns: 1_120_000_001 }) }, context),
       { code: "SIGNER_MISMATCH" },
     );
     await assert.rejects(
@@ -222,7 +222,7 @@ describe("metering receipt schema and EIP-712 verifier", () => {
     assert.ok(MeteringReceiptError.prototype instanceof Error);
     await assert.rejects(
       () => verifyMeteringReceipt(
-        { receipt: changed({ nonce: "0x" + "77".repeat(32) }) as MeteringReceipt, signature: envelope.signature },
+        { receipt: changed({ nonce: "0x" + "77".repeat(32) }), signature: envelope.signature },
         context,
       ),
       { code: "SIGNER_MISMATCH" },
