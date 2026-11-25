@@ -1,0 +1,77 @@
+name: Real Docker cgroup metering acceptance
+
+on:
+  push:
+    branches:
+      - feat/arl-metering-vote-demo
+    paths:
+      - ".github/workflows/metering-real-docker.yml"
+      - "packages/verifier/**"
+      - "scripts/check-zod.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metering-docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-cgroup-v2:
+    name: Actual kernel CPU and memory counters
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Require Linux unified cgroup hierarchy
+        run: |
+          test "$(stat -fc %T /sys/fs/cgroup)" = cgroup2fs
+          cat /sys/fs/cgroup/cgroup.controllers
+          docker info --format '{{.CgroupVersion}}/{{.CgroupDriver}}'
+      - name: Configure isolated temporary Docker cgroupfs driver
+        shell: bash
+        run: |
+          # Only this disposable CI VM is affected; never alter a production daemon.
+          sudo install -d /etc/docker
+          if test -s /etc/docker/daemon.json; then
+            sudo jq '. + {"exec-opts": ["native.cgroupdriver=cgroupfs"]}' \
+              /etc/docker/daemon.json | sudo tee /etc/docker/daemon.tmp >/dev/null
+            sudo mv /etc/docker/daemon.tmp /etc/docker/daemon.json
+          else
+            printf '%s\n' '{"exec-opts":["native.cgroupdriver=cgroupfs"]}' | \
+              sudo tee /etc/docker/daemon.json >/dev/null
+          fi
+          sudo systemctl restart docker
+          docker info --format '{{.CgroupVersion}}/{{.CgroupDriver}}'
+          test "$(docker info --format '{{.CgroupVersion}}/{{.CgroupDriver}}')" = 2/cgroupfs
+      - name: Provision dedicated cpu and memory accounting subtree
+        shell: bash
+        run: |
+          sudo sh -c 'echo "+cpu +memory" > /sys/fs/cgroup/cgroup.subtree_control'
+          sudo mkdir -p /sys/fs/cgroup/arl-metering
+          sudo sh -c 'echo "+cpu +memory" > /sys/fs/cgroup/arl-metering/cgroup.subtree_control'
+          sudo test -f /sys/fs/cgroup/arl-metering/cgroup.controllers
+          cat /sys/fs/cgroup/arl-metering/cgroup.subtree_control
+      - name: Execute real Docker metering and cancellation tests
+        shell: bash
+        run: |
+          # Explicitly require the test host rather than silently accepting skips.
+          test "$(docker info --format '{{.CgroupVersion}}/{{.CgroupDriver}}')" = 2/cgroupfs
+          sudo env "PATH=$PATH" \
+            ARL_METERING_CGROUP_ROOT=/sys/fs/cgroup/arl-metering \
+            npm run test:docker -w @arl/verifier
+      - name: Inspect remaining cgroups after cleanup
+        if: always()
+        shell: bash
+        run: |
+          if test -d /sys/fs/cgroup/arl-metering; then
+            sudo find /sys/fs/cgroup/arl-metering -mindepth 1 -maxdepth 1 -type d
+          fi

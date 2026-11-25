@@ -1,0 +1,191 @@
+{
+  "metadata": {
+    "description": "Synthetic local-only deterministic EIP-712 test fixture. Never use this key on public chains.",
+    "key_derivation": "keccak256(utf8(\"arl-metering-test-vector-only-not-private\"))",
+    "domain": {
+      "name": "ARL Verifiable Resource Metering",
+      "version": "1",
+      "chainId": 31337,
+      "verifyingContract": "0x1000000000000000000000000000000000000001"
+    },
+    "primaryType": "MeteringReceipt",
+    "typedDataFields": [
+      "receiptHash:bytes32",
+      "jobId:uint256",
+      "specHash:bytes32",
+      "deliverableHash:bytes32",
+      "runId:bytes32",
+      "nonce:bytes32"
+    ]
+  },
+  "valid": {
+    "receipt": {
+      "version": "arl-metering-receipt/1",
+      "chain_id": 31337,
+      "evaluator_address": "0x1000000000000000000000000000000000000001",
+      "job_id": "7",
+      "spec_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "deliverable_hash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+      "run_id": "0x3333333333333333333333333333333333333333333333333333333333333333",
+      "nonce": "0x4444444444444444444444444444444444444444444444444444444444444444",
+      "container_digest": "docker.io/library/busybox@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "meter_version": "arl-meter-runner/0.1.0",
+      "meter_source": "linux-cgroup-v2",
+      "trust_level": "trusted-host/software",
+      "started_at": 1795410000,
+      "finished_at": 1795410002,
+      "elapsed_ns": 1500000000,
+      "cpu_time_ns": 1120000000,
+      "memory_peak_bytes": 16777216,
+      "gpu_metrics": null
+    },
+    "expected_signer": "0x281c6e8b0cc09df345fb88c4cb30201d561a5c5e",
+    "receipt_hash": "0x148c4f4a013c2e9efdde705208f686fa5350021252d813bf7e78a2bde38a3a63",
+    "typed_data_digest": "0x767c60bba6730910817466611ef91fbf2200304aaab74d7b5f719918f775fae1",
+    "signature": "0xbcd78ec398d3f69c78788a5a5ac2608d0e47d13e5b32a4bd3c1798fdc228abdd38d4d469aa94d5351a6cce16de5bacbc034b292d2f54e11659f975a3e24ae7af1b",
+    "composite": {
+      "version": "arl-metering-vote/1",
+      "result_hash": "0x2222222222222222222222222222222222222222222222222222222222222222",
+      "receipt_hash": "0x148c4f4a013c2e9efdde705208f686fa5350021252d813bf7e78a2bde38a3a63"
+    },
+    "composite_evidence_hash": "0xffa518b6daf47428893b3dfc5a65fddec16fad91be0fc5f0f9ec762396007606"
+  },
+  "invalid_mutations": [
+    {
+      "name": "cpu-tampered",
+      "changes": {
+        "cpu_time_ns": 1120000001
+      },
+      "expected_error": "SIGNER_MISMATCH",
+      "expected_receipt_hash": "0xe70b15d01c7e538dd940a39eec18118fa6b73d159a278d14f99761a988a2234f"
+    },
+    {
+      "name": "memory-tampered",
+      "changes": {
+        "memory_peak_bytes": 16777217
+      },
+      "expected_error": "SIGNER_MISMATCH",
+      "expected_receipt_hash": "0x82b014d4cce92aa9962ea527afee8387ef033499b31667bc049d9b5c4633d923"
+    },
+    {
+      "name": "wrong-chain",
+      "changes": {
+        "chain_id": 8453
+      },
+      "expected_error": "CHAIN_MISMATCH",
+      "expected_receipt_hash": "0x63283d9b32faa67bff206cb5312a6117767f09c45e09350277761bc7c1ac821c"
+    },
+    {
+      "name": "wrong-evaluator",
+      "changes": {
+        "evaluator_address": "0x2000000000000000000000000000000000000002"
+      },
+      "expected_error": "EVALUATOR_MISMATCH",
+      "expected_receipt_hash": "0x8f3fe0c6672bb5a4e3ff0ded1ec76662aacee6314e0ceffa2eb74a2c41b447c8"
+    },
+    {
+      "name": "wrong-job",
+      "changes": {
+        "job_id": "8"
+      },
+      "expected_error": "JOB_MISMATCH",
+      "expected_receipt_hash": "0x3d96b67de14a91f4e8a460de866af960a758cd7be558063e91c3c3d0da8f2e39"
+    },
+    {
+      "name": "wrong-spec",
+      "changes": {
+        "spec_hash": "0x5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "expected_error": "SPEC_MISMATCH",
+      "expected_receipt_hash": "0x51a41d1c7db9d2ad5bcb6dc9600174c1419faff8f9c8d0385fb8910b6d1d4bfb"
+    },
+    {
+      "name": "wrong-deliverable",
+      "changes": {
+        "deliverable_hash": "0x6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "expected_error": "DELIVERABLE_MISMATCH",
+      "expected_receipt_hash": "0x86ecc106feb0522e08b4bd07cd46b19f4c0fb0a4a97e2aa1f14c8ad2ac4b6681"
+    },
+    {
+      "name": "negative-cpu",
+      "changes": {
+        "cpu_time_ns": -1
+      },
+      "expected_error": "INVALID_MEASUREMENT",
+      "expected_receipt_hash": "0x206f97102a027e1d1e8de3c08c8b7c0f54146e5aec0f0ce468d05464d0266e62"
+    },
+    {
+      "name": "unsafe-cpu",
+      "changes": {
+        "cpu_time_ns": 9007199254740992
+      },
+      "expected_error": "UNSAFE_INTEGER",
+      "expected_receipt_hash": null
+    },
+    {
+      "name": "timestamp-reversed",
+      "changes": {
+        "finished_at": 1795409999
+      },
+      "expected_error": "INVALID_TIMESTAMP",
+      "expected_receipt_hash": "0x5c9172143248ea691d8b70a599d95c0d4686f35477fd98eb0ad2e3d6f5793319"
+    },
+    {
+      "name": "gpu-zero",
+      "changes": {
+        "gpu_metrics": 0
+      },
+      "expected_error": "INVALID_GPU_METRICS",
+      "expected_receipt_hash": "0x5079fadf31a829408eb0476cd05ae7428ea683568a74c746b15806384f0e499f"
+    },
+    {
+      "name": "cpu-as-string",
+      "changes": {
+        "cpu_time_ns": "1120000000"
+      },
+      "expected_error": "INVALID_MEASUREMENT",
+      "expected_receipt_hash": "0x7cf78c4866c3df0fbfe170e5048e6bdcd20dbe50729e3276f3463043c8740c9d"
+    },
+    {
+      "name": "missing-memory",
+      "changes": {
+        "memory_peak_bytes": "__DELETE__"
+      },
+      "expected_error": "MISSING_FIELD",
+      "expected_receipt_hash": "0xb64e006145d6c37bd3aa65c3f133244397c00386a37052604dd65c3d1a0c9a4e"
+    },
+    {
+      "name": "nonce-changed",
+      "changes": {
+        "nonce": "0x7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "expected_error": "SIGNER_MISMATCH",
+      "expected_receipt_hash": "0x3598819ab811c270e0e64964121e8e5f3015f7d63e049c00f9b4b916ecbe818a"
+    },
+    {
+      "name": "unexpected-signer",
+      "changes": {},
+      "expected_error": "SIGNER_MISMATCH",
+      "expected_receipt_hash": "0x148c4f4a013c2e9efdde705208f686fa5350021252d813bf7e78a2bde38a3a63"
+    },
+    {
+      "name": "invalid-signature",
+      "changes": {},
+      "expected_error": "SIGNATURE_INVALID",
+      "expected_receipt_hash": "0x148c4f4a013c2e9efdde705208f686fa5350021252d813bf7e78a2bde38a3a63"
+    },
+    {
+      "name": "duplicate-replay",
+      "changes": {},
+      "expected_error": "REPLAY_DETECTED",
+      "expected_receipt_hash": "0x148c4f4a013c2e9efdde705208f686fa5350021252d813bf7e78a2bde38a3a63"
+    },
+    {
+      "name": "composite-mismatch",
+      "changes": {},
+      "expected_error": "COMPOSITE_MISMATCH",
+      "expected_receipt_hash": "0x148c4f4a013c2e9efdde705208f686fa5350021252d813bf7e78a2bde38a3a63"
+    }
+  ]
+}
