@@ -9,6 +9,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
+import { URL } from "node:url";
 
 const FIXED = [4, 6, 6];
 const IMPORT = /(?:from\s*|require\(\s*|import\(\s*)["'](zod(?:\/[^"']*)?)["']/g;
