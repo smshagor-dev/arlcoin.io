@@ -208,6 +208,8 @@ before(async () => {
     logs: reservedReceipt.logs,
     eventName: "Registered",
   });
+  assert.equal(reservedEvents.length, 1);
+  assert.ok(reservedEvents[0]);
   assert.equal(reservedEvents[0].args.agentId, 0n);
 
   const regHash = await wallet(provider).writeContract({
