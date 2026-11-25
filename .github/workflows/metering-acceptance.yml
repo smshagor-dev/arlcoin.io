@@ -1,0 +1,74 @@
+name: Metering acceptance
+
+on:
+  push:
+    branches:
+      - feat/arl-metering-receipt-spec
+      - feat/arl-metering-runner-verifier
+      - feat/arl-metering-vote-demo
+    paths:
+      - ".github/workflows/metering-acceptance.yml"
+      - "packages/verifier/**"
+      - "spec/arl-metering-receipt/**"
+      - "scripts/demo-resource-metering.sh"
+      - "docs/verifiable-resource-metering.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metering-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: TypeScript, lint, format and verifier tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Formatting
+        run: npm run format:check
+      - name: Signed receipt and replay unit tests
+        run: npm test -w @arl/verifier
+
+  anvil:
+    name: Local ERC-8004 meter registration and composite vote
+    if: github.ref_name == 'feat/arl-metering-vote-demo'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verifier
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
+        with:
+          version: v1.8.3
+      - run: npm ci
+      - name: Build existing contracts (no Solidity modifications)
+        working-directory: contracts
+        run: forge build --skip test --skip script
+      - name: Check local composite vote and settlement
+        run: node --test packages/verifier/test-anvil/metering.anvil.test.ts
+
+# Real Linux cgroup v2 + Docker cgroupfs tests are deliberately not silently
+# treated as passing: they require an operator-provisioned delegated cgroup.
