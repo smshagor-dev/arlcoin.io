@@ -55,7 +55,7 @@ function chain(
       functionName: string;
       blockNumber?: bigint;
     }) => {
-      calls.push({ functionName, blockNumber });
+      calls.push({ functionName, ...(blockNumber === undefined ? {} : { blockNumber }) });
       if (functionName === "identity") return registry;
       if (functionName === "jobs") return jobs;
       if (functionName === "getConfig") return { providerAgentId: options.agentId ?? 17n };
