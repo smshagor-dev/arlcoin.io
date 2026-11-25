@@ -6,6 +6,7 @@ on:
       - feat/arl-metering-receipt-spec
       - feat/arl-metering-runner-verifier
       - feat/arl-metering-vote-demo
+      - feat/arl-metering-upstream-review
     paths:
       - ".github/workflows/metering-acceptance.yml"
       - "packages/verifier/**"
@@ -51,7 +52,7 @@ jobs:
 
   anvil:
     name: Local ERC-8004 meter registration and composite vote
-    if: github.ref_name == 'feat/arl-metering-vote-demo'
+    if: github.ref_name == 'feat/arl-metering-vote-demo' || github.ref_name == 'feat/arl-metering-upstream-review'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: verifier
