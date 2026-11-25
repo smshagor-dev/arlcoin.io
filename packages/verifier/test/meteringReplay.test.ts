@@ -40,9 +40,15 @@ describe("durable provisional job-level replay reservation", () => {
   it("rejects a repeated receipt after re-creating the store", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-replay-"));
     try {
-      const first = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
+      const first = new FileMeteringReplayStore(
+        directory,
+        "0x9999999999999999999999999999999999999999",
+      );
       await first.consume(verified());
-      const restarted = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
+      const restarted = new FileMeteringReplayStore(
+        directory,
+        "0x9999999999999999999999999999999999999999",
+      );
       await assert.rejects(() => restarted.consume(verified()), { code: "REPLAY_DETECTED" });
       assert.equal((await readdir(directory)).length, 1);
     } finally {
@@ -53,7 +59,10 @@ describe("durable provisional job-level replay reservation", () => {
   it("allows exactly one concurrent reservation of the same job", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-replay-concurrent-"));
     try {
-      const first = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
+      const first = new FileMeteringReplayStore(
+        directory,
+        "0x9999999999999999999999999999999999999999",
+      );
       const results = await Promise.allSettled(
         Array.from({ length: 12 }, () => first.consume(verified())),
       );
@@ -62,9 +71,8 @@ describe("durable provisional job-level replay reservation", () => {
       assert.equal(failures.length, 11);
       assert.ok(
         failures.every(
-          (r) => r.reason instanceof Error &&
-            "code" in r.reason &&
-            r.reason.code === "REPLAY_DETECTED",
+          (r) =>
+            r.reason instanceof Error && "code" in r.reason && r.reason.code === "REPLAY_DETECTED",
         ),
       );
     } finally {
@@ -75,14 +83,21 @@ describe("durable provisional job-level replay reservation", () => {
   it("rejects a different nonce or run ID for an already reserved job", async () => {
     const directory = await mkdtemp(join(tmpdir(), "arl-replay-scope-"));
     try {
-      const store = new FileMeteringReplayStore(directory, "0x9999999999999999999999999999999999999999");
+      const store = new FileMeteringReplayStore(
+        directory,
+        "0x9999999999999999999999999999999999999999",
+      );
       await store.consume(verified());
       await assert.rejects(
-        () => store.consume(verified({ nonce: ("0x" + "55".repeat(32)) as MeteringReceipt["nonce"] })),
+        () =>
+          store.consume(verified({ nonce: ("0x" + "55".repeat(32)) as MeteringReceipt["nonce"] })),
         { code: "REPLAY_DETECTED" },
       );
       await assert.rejects(
-        () => store.consume(verified({ run_id: ("0x" + "66".repeat(32)) as MeteringReceipt["run_id"] })),
+        () =>
+          store.consume(
+            verified({ run_id: ("0x" + "66".repeat(32)) as MeteringReceipt["run_id"] }),
+          ),
         { code: "REPLAY_DETECTED" },
       );
       await store.consume(verified({ job_id: "8" }));

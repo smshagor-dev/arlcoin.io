@@ -133,7 +133,12 @@ export class MeteredDockerRunner implements ContainerRunner {
     const [actualRoot, enabled, driver] = await Promise.all([
       realpath(this.#cgroupRoot),
       readFile(join(this.#cgroupRoot, "cgroup.subtree_control"), "utf8"),
-      docker(this.#docker, ["info", "--format", "{{.CgroupVersion}}/{{.CgroupDriver}}"], COMMAND_TIMEOUT_MS, signal),
+      docker(
+        this.#docker,
+        ["info", "--format", "{{.CgroupVersion}}/{{.CgroupDriver}}"],
+        COMMAND_TIMEOUT_MS,
+        signal,
+      ),
     ]).catch(() => {
       throw new MeteringReceiptError(
         "METER_COUNTERS_UNAVAILABLE",
@@ -141,11 +146,7 @@ export class MeteredDockerRunner implements ContainerRunner {
       );
     });
 
-    if (
-      actualRoot !== this.#cgroupRoot ||
-      !controllersReady(enabled) ||
-      driver !== "2/cgroupfs"
-    ) {
+    if (actualRoot !== this.#cgroupRoot || !controllersReady(enabled) || driver !== "2/cgroupfs") {
       throw new MeteringReceiptError(
         "METER_COUNTERS_UNAVAILABLE",
         "requires cgroup v2, enabled cpu+memory and Docker cgroupfs driver",

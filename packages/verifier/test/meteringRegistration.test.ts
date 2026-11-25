@@ -58,12 +58,14 @@ function chain(
       calls.push({ functionName, ...(blockNumber === undefined ? {} : { blockNumber }) });
       if (functionName === "identity") return Promise.resolve(registry);
       if (functionName === "jobs") return Promise.resolve(jobs);
-      if (functionName === "getConfig") return Promise.resolve({ providerAgentId: options.agentId ?? 17n });
+      if (functionName === "getConfig")
+        return Promise.resolve({ providerAgentId: options.agentId ?? 17n });
       if (functionName === "getJob") {
         return Promise.resolve({ id: 7n, provider: options.provider ?? provider, evaluator });
       }
       if (functionName === "ownerOf") return Promise.resolve(options.owner ?? provider);
-      if (functionName === "tokenURI") return Promise.resolve(options.uri ?? "https://example.org/agent.json");
+      if (functionName === "tokenURI")
+        return Promise.resolve(options.uri ?? "https://example.org/agent.json");
       throw new Error("unexpected read " + functionName);
     },
   } as unknown as PublicClient;
@@ -92,7 +94,11 @@ describe("pinned historical ERC-8004 meter registration", () => {
 
   it("refuses a historical URI that differs from the independently pinned URI", async () => {
     await assert.rejects(
-      () => resolveMeterSigner(chain({ uri: "https://other.example.org/agent.json" }).client, snapshot()),
+      () =>
+        resolveMeterSigner(
+          chain({ uri: "https://other.example.org/agent.json" }).client,
+          snapshot(),
+        ),
       { code: "REGISTRATION_UNAVAILABLE" },
     );
   });
@@ -115,10 +121,9 @@ describe("pinned historical ERC-8004 meter registration", () => {
       ...document,
       registrations: [{ agentRegistry: "eip155:8453:" + registry, agentId: 17 }],
     });
-    await assert.rejects(
-      () => resolveMeterSigner(chain().client, wrongRegistration),
-      { code: "REGISTRATION_UNAVAILABLE" },
-    );
+    await assert.rejects(() => resolveMeterSigner(chain().client, wrongRegistration), {
+      code: "REGISTRATION_UNAVAILABLE",
+    });
     await assert.rejects(
       () => resolveMeterSigner(chain({ uri: "ftp://attacker.invalid/metadata" }).client, context),
       { code: "REGISTRATION_UNAVAILABLE" },

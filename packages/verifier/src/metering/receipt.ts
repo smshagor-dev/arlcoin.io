@@ -1,11 +1,7 @@
 // arl-metering-receipt/1. This module validates claims and signatures, not physical resource use.
 // The authorized meter address MUST come from a separate authenticated registration resolver.
 
-import {
-  recoverTypedDataAddress,
-  type Address,
-  type Hex,
-} from "viem";
+import { recoverTypedDataAddress, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { canonicalHash } from "../canonical.ts";
@@ -435,10 +431,7 @@ export async function verifyMeteringReceipt(
   if (context.maxElapsedNs !== undefined && receipt.elapsed_ns > context.maxElapsedNs) {
     fail("INVALID_MEASUREMENT", "elapsed duration exceeds configured limit");
   }
-  if (
-    context.maxCpuTimeNs !== undefined &&
-    receipt.cpu_time_ns > context.maxCpuTimeNs
-  ) {
+  if (context.maxCpuTimeNs !== undefined && receipt.cpu_time_ns > context.maxCpuTimeNs) {
     fail("INVALID_MEASUREMENT", "CPU time exceeds configured limit");
   }
   if (context.maxMemoryBytes !== undefined && receipt.memory_peak_bytes > context.maxMemoryBytes) {
@@ -446,8 +439,7 @@ export async function verifyMeteringReceipt(
   }
   if (
     context.nowSeconds === undefined &&
-    (context.maxReceiptAgeSeconds !== undefined ||
-      context.maxFutureSkewSeconds !== undefined)
+    (context.maxReceiptAgeSeconds !== undefined || context.maxFutureSkewSeconds !== undefined)
   ) {
     fail("INVALID_TIMESTAMP", "freshness limits require nowSeconds");
   }
@@ -467,8 +459,10 @@ export async function verifyMeteringReceipt(
       }
     }
   }
-  if (typeof context.expectedSigner !== "string" ||
-      !/^0x[0-9a-fA-F]{40}$/.test(context.expectedSigner)) {
+  if (
+    typeof context.expectedSigner !== "string" ||
+    !/^0x[0-9a-fA-F]{40}$/.test(context.expectedSigner)
+  ) {
     fail("SIGNER_MISMATCH", "no authenticated meter signer");
   }
 

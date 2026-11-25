@@ -53,78 +53,79 @@ function job(command: string) {
   });
 }
 
-describe("metered Docker cgroup v2 integration", {
-  skip: !ready && "requires delegated cgroup v2 + cgroupfs",
-}, () => {
-  it("runs real CPU/memory workload, signs receipt and publishes pinned artifact", async () => {
-    assert.ok(root);
-    const spec = job(
-      "i=0; while [ $i -lt 300000 ]; do i=$((i+1)); done; " +
-        "dd if=/dev/zero of=/tmp/load bs=1M count=24 2>/dev/null; " +
-        "echo done > /out/result.txt",
-    );
-    const directory = await mkdtemp(join(tmpdir(), "arl-metering-evidence-"));
-    try {
-      const receiptPath = join(directory, "receipt.json");
-      const key = keccak256(stringToBytes("arl-metering-test-vector-only-not-private"));
-      const { execution, publication } = await executeAndPublishMeteredReceipt(
-        spec,
-        {
-          chainId: 31337,
-          evaluatorAddress: "0x1000000000000000000000000000000000000001",
-          jobId: "7",
-          meterPrivateKey: key,
-        },
-        {
-          cgroupRoot: root,
-          receiptPath,
-          fetcher: {
-            file: () => Promise.reject(new Error("unexpected input fetch")),
-            git: () => Promise.reject(new Error("unexpected input fetch")),
-          },
-        },
+describe(
+  "metered Docker cgroup v2 integration",
+  {
+    skip: !ready && "requires delegated cgroup v2 + cgroupfs",
+  },
+  () => {
+    it("runs real CPU/memory workload, signs receipt and publishes pinned artifact", async () => {
+      assert.ok(root);
+      const spec = job(
+        "i=0; while [ $i -lt 300000 ]; do i=$((i+1)); done; " +
+          "dd if=/dev/zero of=/tmp/load bs=1M count=24 2>/dev/null; " +
+          "echo done > /out/result.txt",
       );
-      assert.equal(execution.result.timed_out, false);
-      assert.equal(execution.result.exit_code, 0);
-      assert.ok(execution.metering, "successful measured run must provide cgroup counters");
-      assert.ok(execution.metering.cpu_time_ns > 0);
-      assert.ok(execution.metering.memory_peak_bytes >= 24 * 1024 * 1024);
-      assert.ok(execution.metering.elapsed_ns > 0);
-      assert.ok(publication.byteLength > 0);
-      assert.match(publication.sha256, /^0x[0-9a-f]{64}$/);
+      const directory = await mkdtemp(join(tmpdir(), "arl-metering-evidence-"));
+      try {
+        const receiptPath = join(directory, "receipt.json");
+        const key = keccak256(stringToBytes("arl-metering-test-vector-only-not-private"));
+        const { execution, publication } = await executeAndPublishMeteredReceipt(
+          spec,
+          {
+            chainId: 31337,
+            evaluatorAddress: "0x1000000000000000000000000000000000000001",
+            jobId: "7",
+            meterPrivateKey: key,
+          },
+          {
+            cgroupRoot: root,
+            receiptPath,
+            fetcher: {
+              file: () => Promise.reject(new Error("unexpected input fetch")),
+              git: () => Promise.reject(new Error("unexpected input fetch")),
+            },
+          },
+        );
+        assert.equal(execution.result.timed_out, false);
+        assert.equal(execution.result.exit_code, 0);
+        assert.ok(execution.metering, "successful measured run must provide cgroup counters");
+        assert.ok(execution.metering.cpu_time_ns > 0);
+        assert.ok(execution.metering.memory_peak_bytes >= 24 * 1024 * 1024);
+        assert.ok(execution.metering.elapsed_ns > 0);
+        assert.ok(publication.byteLength > 0);
+        assert.match(publication.sha256, /^0x[0-9a-f]{64}$/);
 
-      const { signed } = await readPinnedMeteringArtifact(receiptPath, publication.sha256);
-      const verified = await verifyMeteringReceipt(signed, {
-        chainId: 31337,
-        evaluatorAddress: signed.receipt.evaluator_address,
-        jobId: "7",
-        specHash: specHash(spec),
-        deliverableHash: execution.hash,
-        containerDigest: spec.container_digest,
-        expectedSigner: privateKeyToAccount(key).address,
-        nowSeconds: Math.floor(Date.now() / 1000),
-        maxReceiptAgeSeconds: 300,
-        maxFutureSkewSeconds: 5,
-      });
-      assert.equal(verified.receiptHash.length, 66);
-
-    } finally {
-      await rm(directory, { recursive: true, force: true });
-    }
-  });
-  it("honors cancellation without returning a signed receipt", async () => {
-    assert.ok(root);
-    const dir = await mkdtemp(join(tmpdir(), "arl-meter-cancel-"));
-    const receiptPath = join(dir, "receipt.json");
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort();
-    }, 1_000);
-    const started = Date.now();
-    try {
-      const spec = job("sleep 30; echo complete > /out/result.txt");
-      await assert.rejects(
-        () =>
+        const { signed } = await readPinnedMeteringArtifact(receiptPath, publication.sha256);
+        const verified = await verifyMeteringReceipt(signed, {
+          chainId: 31337,
+          evaluatorAddress: signed.receipt.evaluator_address,
+          jobId: "7",
+          specHash: specHash(spec),
+          deliverableHash: execution.hash,
+          containerDigest: spec.container_digest,
+          expectedSigner: privateKeyToAccount(key).address,
+          nowSeconds: Math.floor(Date.now() / 1000),
+          maxReceiptAgeSeconds: 300,
+          maxFutureSkewSeconds: 5,
+        });
+        assert.equal(verified.receiptHash.length, 66);
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+    it("honors cancellation without returning a signed receipt", async () => {
+      assert.ok(root);
+      const dir = await mkdtemp(join(tmpdir(), "arl-meter-cancel-"));
+      const receiptPath = join(dir, "receipt.json");
+      const controller = new AbortController();
+      const timer = setTimeout(() => {
+        controller.abort();
+      }, 1_000);
+      const started = Date.now();
+      try {
+        const spec = job("sleep 30; echo complete > /out/result.txt");
+        await assert.rejects(() =>
           executeAndPublishMeteredReceipt(
             spec,
             {
@@ -145,14 +146,14 @@ describe("metered Docker cgroup v2 integration", {
               signal: controller.signal,
             },
           ),
-      );
-      assert.equal(controller.signal.aborted, true);
-      assert.ok(Date.now() - started < 20_000, "cancellation must interrupt the workload");
-      await assert.rejects(() => stat(receiptPath), { code: "ENOENT" });
-    } finally {
-      clearTimeout(timer);
-      await rm(dir, { recursive: true, force: true });
-    }
-  });
-
-});
+        );
+        assert.equal(controller.signal.aborted, true);
+        assert.ok(Date.now() - started < 20_000, "cancellation must interrupt the workload");
+        await assert.rejects(() => stat(receiptPath), { code: "ENOENT" });
+      } finally {
+        clearTimeout(timer);
+        await rm(dir, { recursive: true, force: true });
+      }
+    });
+  },
+);

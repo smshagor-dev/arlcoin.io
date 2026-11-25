@@ -63,7 +63,10 @@ describe("metering receipt schema and EIP-712 verifier", () => {
 
     const key = keccak256(stringToBytes("arl-metering-test-vector-only-not-private"));
     const produced = await signMeteringReceipt(receipt, key);
-    assert.equal((await verifyMeteringReceipt(produced, context)).receiptHash, verified.receiptHash);
+    assert.equal(
+      (await verifyMeteringReceipt(produced, context)).receiptHash,
+      verified.receiptHash,
+    );
   });
 
   it("rejects missing, unknown and type-invalid fields before hashing", () => {
@@ -105,9 +108,11 @@ describe("metering receipt schema and EIP-712 verifier", () => {
     });
     assert.throws(
       () =>
-        parseMeteringReceipt(changed({
-          evaluator_address: "0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD",
-        })),
+        parseMeteringReceipt(
+          changed({
+            evaluator_address: "0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD",
+          }),
+        ),
       { code: "MALFORMED_RECEIPT" },
     );
     assert.throws(() => parseMeteringReceipt(changed({ container_digest: "busybox:latest" })), {
@@ -182,10 +187,7 @@ describe("metering receipt schema and EIP-712 verifier", () => {
       () => parseSignedMeteringReceipt({ receipt, signature: "0x" + "00".repeat(65) }),
       { code: "SIGNATURE_INVALID" },
     );
-    const highS = ("0x" +
-      vectors.valid.signature.slice(2, 66) +
-      "ff".repeat(32) +
-      "1b") as Hex;
+    const highS = ("0x" + vectors.valid.signature.slice(2, 66) + "ff".repeat(32) + "1b") as Hex;
     assert.throws(() => parseSignedMeteringReceipt({ receipt, signature: highS }), {
       code: "SIGNATURE_INVALID",
     });
@@ -193,14 +195,19 @@ describe("metering receipt schema and EIP-712 verifier", () => {
 
   it("rejects tampering and unauthorized meter keys", async () => {
     await assert.rejects(
-      () => verifyMeteringReceipt({ ...envelope, receipt: changed({ cpu_time_ns: 1_120_000_001 }) }, context),
+      () =>
+        verifyMeteringReceipt(
+          { ...envelope, receipt: changed({ cpu_time_ns: 1_120_000_001 }) },
+          context,
+        ),
       { code: "SIGNER_MISMATCH" },
     );
     await assert.rejects(
-      () => verifyMeteringReceipt(envelope, {
-        ...context,
-        expectedSigner: "0x2222222222222222222222222222222222222222",
-      }),
+      () =>
+        verifyMeteringReceipt(envelope, {
+          ...context,
+          expectedSigner: "0x2222222222222222222222222222222222222222",
+        }),
       { code: "SIGNER_MISMATCH" },
     );
     for (const [patch, errorCode] of [
@@ -212,7 +219,8 @@ describe("metering receipt schema and EIP-712 verifier", () => {
       [{ containerDigest: "different-image" }, "CONTAINER_MISMATCH"],
     ] as const) {
       await assert.rejects(
-        () => verifyMeteringReceipt(envelope, { ...context, ...patch } as MeteringVerificationContext),
+        () =>
+          verifyMeteringReceipt(envelope, { ...context, ...patch } as MeteringVerificationContext),
         { code: errorCode },
       );
     }
@@ -221,10 +229,11 @@ describe("metering receipt schema and EIP-712 verifier", () => {
   it("does not mistake a malformed artifact for an authenticated receipt", async () => {
     assert.ok(MeteringReceiptError.prototype instanceof Error);
     await assert.rejects(
-      () => verifyMeteringReceipt(
-        { receipt: changed({ nonce: "0x" + "77".repeat(32) }), signature: envelope.signature },
-        context,
-      ),
+      () =>
+        verifyMeteringReceipt(
+          { receipt: changed({ nonce: "0x" + "77".repeat(32) }), signature: envelope.signature },
+          context,
+        ),
       { code: "SIGNER_MISMATCH" },
     );
   });
