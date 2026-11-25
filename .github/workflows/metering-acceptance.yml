@@ -49,37 +49,6 @@ jobs:
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm test -w @arl/verifier
 
-      - name: Export exact formatting candidates for review
-        if: ${{ always() && steps.install.outcome == 'success' }}
-        shell: bash
-        run: |
-          files=(
-            docs/open-source.md
-            docs/verifiable-resource-metering.md
-            packages/verifier/src/metering/artifact.ts
-            packages/verifier/src/metering/provider.ts
-            packages/verifier/src/metering/receipt.ts
-            packages/verifier/src/metering/registration.ts
-            packages/verifier/src/metering/runner.ts
-            packages/verifier/src/metering/vote.ts
-            packages/verifier/test-anvil/metering.anvil.test.ts
-            packages/verifier/test-docker/metering.test.ts
-            packages/verifier/test/meteringArtifact.test.ts
-            packages/verifier/test/meteringCgroup.test.ts
-            packages/verifier/test/meteringEvidence.test.ts
-            packages/verifier/test/meteringProducer.test.ts
-            packages/verifier/test/meteringReceipt.test.ts
-            packages/verifier/test/meteringRegistration.test.ts
-            packages/verifier/test/meteringReplay.test.ts
-            packages/verifier/test/meteringVectors.test.ts
-          )
-          ./node_modules/.bin/prettier --write "${files[@]}" >/dev/null
-          while IFS= read -r changed; do
-            printf 'METERING_FORMATTED:%s:' "$changed"
-            base64 -w 0 "$changed"
-            printf '\n'
-          done < <(git diff --name-only -- "${files[@]}")
-
   anvil:
     name: Local ERC-8004 meter registration and composite vote
     if: github.ref_name == 'feat/arl-metering-vote-demo'
